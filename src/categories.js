@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Resolve item category from ItemId prefix.
  * Same logic as the BepInEx mod's GetItemCategoryString.
  */

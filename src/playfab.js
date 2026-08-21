@@ -1,4 +1,4 @@
-﻿const config = require('./config');
+const config = require('./config');
 const steam = require('./steam');
 
 const BASE_URL = `https://${config.playfab.titleId}.playfabapi.com`;

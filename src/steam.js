@@ -1,4 +1,4 @@
-﻿const SteamUser = require('steam-user');
+const SteamUser = require('steam-user');
 const fs = require('fs');
 const path = require('path');
 const config = require('./config');

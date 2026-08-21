@@ -1,4 +1,4 @@
-﻿# Gorilla Tag 24/7 Catalog & Title Data Tracker Bot
+# Gorilla Tag 24/7 Catalog & Title Data Tracker Bot
 
 A standalone Discord bot that tracks PlayFab Catalog changes, Title Data updates, and Upcoming Cosmetics 24/7 headlessly (no game client needed). Designed to run on a Raspberry Pi, VPS, or cloud host.
 

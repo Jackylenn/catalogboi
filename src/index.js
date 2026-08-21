@@ -1,4 +1,4 @@
-﻿const config = require('./config');
+const config = require('./config');
 const steam = require('./steam');
 const playfab = require('./playfab');
 const { diffCatalog, diffTitleData } = require('./tracker');

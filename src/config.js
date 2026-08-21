@@ -1,4 +1,4 @@
-﻿require('dotenv').config();
+require('dotenv').config();
 
 // Determine poll interval in milliseconds (supports POLL_INTERVAL_SECONDS or POLL_INTERVAL_MINUTES)
 let intervalSeconds = 600; // default 10 min
