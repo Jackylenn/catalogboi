@@ -1,0 +1,744 @@
+﻿const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const fs = require('fs');
+const path = require('path');
+const config = require('./config');
+const { getUpcomingCosmetics, resetBaselines, clearUpcomingCosmetics, getFormattedPrice, getPrice, getPriceString, getCurrencyName } = require('./tracker');
+const { getItemCategory } = require('./categories');
+const { purchaseItem } = require('./playfab');
+
+let client = null;
+let catalogChannel = null;
+let newItemsChannel = null;
+let priceChangesChannel = null;
+let titleDataChannel = null;
+let listChannel = null;
+let startTime = Date.now();
+let lastCheckTime = null;
+let lastCheckItemCount = 0;
+
+// Store the list message ID so we can edit it instead of posting new ones
+const LIST_MSG_PATH = path.join(__dirname, '..', 'data', 'list_message_id.txt');
+
+// ─── Bot Setup ───────────────────────────────────────────────────
+
+async function initBot() {
+    try {
+        client = new Client({
+            intents: [
+                GatewayIntentBits.Guilds,
+                GatewayIntentBits.GuildMessages,
+                GatewayIntentBits.MessageContent,
+            ],
+        });
+        await client.login(config.discord.token);
+    } catch (err) {
+        if (err.message && err.message.includes('disallowed intents')) {
+            console.warn('[Discord] Message Content Intent is not enabled in Discord Developer Portal.');
+            console.warn('[Discord] Falling back to Slash Commands only (/upcoming, /clearlist, /status, /reset, /buy)...');
+            client = new Client({
+                intents: [
+                    GatewayIntentBits.Guilds,
+                ],
+            });
+            await client.login(config.discord.token);
+        } else {
+            throw err;
+        }
+    }
+
+    await new Promise((resolve) => {
+        client.once('ready', async () => {
+            console.log(`[Discord] Bot ready as ${client.user.tag}`);
+
+            // Fetch configured channels
+            async function fetchChan(id, name) {
+                if (!id) return null;
+                try {
+                    const ch = await client.channels.fetch(id);
+                    console.log(`[Discord] ${name} channel: #${ch?.name || id}`);
+                    return ch;
+                } catch (e) {
+                    console.error(`[Discord] Could not find ${name} channel (${id}): ${e.message}`);
+                    return null;
+                }
+            }
+
+            catalogChannel = await fetchChan(config.discord.catalogChannelId, 'Catalog');
+            newItemsChannel = await fetchChan(config.discord.newItemsChannelId, 'New Items') || catalogChannel;
+            priceChangesChannel = await fetchChan(config.discord.priceChangesChannelId, 'Price Changes') || catalogChannel;
+            titleDataChannel = await fetchChan(config.discord.titleDataChannelId, 'Title Data');
+            listChannel = await fetchChan(config.discord.listChannelId, 'List');
+
+            await registerCommands();
+            resolve();
+        });
+    });
+
+    client.on('interactionCreate', handleInteraction);
+    client.on('messageCreate', handlePrefixCommand);
+    return client;
+}
+
+// ─── Slash Commands ──────────────────────────────────────────────
+
+async function registerCommands() {
+    const commands = [
+        new SlashCommandBuilder()
+            .setName('upcoming')
+            .setDescription('Post the accumulated upcoming cosmetics summary'),
+        new SlashCommandBuilder()
+            .setName('reset')
+            .setDescription('Clear all baseline files and re-scan on next poll'),
+        new SlashCommandBuilder()
+            .setName('status')
+            .setDescription('Show bot uptime, last check time, and item counts'),
+        new SlashCommandBuilder()
+            .setName('clearlist')
+            .setDescription('Clear the upcoming cosmetics list'),
+        new SlashCommandBuilder()
+            .setName('buy')
+            .setDescription('Purchase an item in Gorilla Tag using a PlayFab session ticket')
+            .addStringOption(opt =>
+                opt.setName('sessionticket')
+                    .setDescription('Your PlayFab session ticket')
+                    .setRequired(true)
+            )
+            .addStringOption(opt =>
+                opt.setName('itemid')
+                    .setDescription('Item ID to purchase (e.g. LBATF.)')
+                    .setRequired(true)
+            )
+            .addIntegerOption(opt =>
+                opt.setName('price')
+                    .setDescription('Price in Shiny Rocks (0 for free items)')
+                    .setRequired(true)
+            )
+            .addStringOption(opt =>
+                opt.setName('currency')
+                    .setDescription('Virtual Currency code (default: SR)')
+                    .setRequired(false)
+            ),
+    ];
+
+    const rest = new REST({ version: '10' }).setToken(config.discord.token);
+    const commandPayload = commands.map(c => c.toJSON());
+
+    // 1. Wipe global commands so they don't duplicate with guild commands
+    try {
+        await rest.put(Routes.applicationCommands(client.user.id), {
+            body: [],
+        });
+    } catch { }
+
+    // 2. Register ONLY per-guild for INSTANT update and NO duplicates
+    try {
+        const guilds = client.guilds.cache;
+        for (const [guildId, guild] of guilds) {
+            await rest.put(Routes.applicationGuildCommands(client.user.id, guildId), {
+                body: commandPayload,
+            });
+            console.log(`[Discord] Slash commands registered cleanly for guild: ${guild.name}`);
+        }
+    } catch (e) {
+        console.warn('[Discord] Guild command registration:', e.message);
+    }
+}
+
+async function handleInteraction(interaction) {
+    if (!interaction.isChatInputCommand()) return;
+
+    if (interaction.commandName === 'upcoming') {
+        await handleUpcoming(interaction);
+    } else if (interaction.commandName === 'reset') {
+        await handleReset(interaction);
+    } else if (interaction.commandName === 'status') {
+        await handleStatus(interaction);
+    } else if (interaction.commandName === 'clearlist') {
+        await handleClearList(interaction);
+    } else if (interaction.commandName === 'buy') {
+        await handleBuy(interaction);
+    }
+}
+
+// ─── Prefix Command (?clearlist, ?upcoming, ?status, ?reset, ?buy) 
+
+async function handlePrefixCommand(message) {
+    if (message.author.bot) return;
+    if (!message.content.startsWith('?')) return;
+
+    const fullContent = message.content.slice(1).trim();
+    const parts = fullContent.split(/\s+/);
+    const cmd = parts[0].toLowerCase();
+
+    if (cmd === 'clearlist') {
+        clearUpcomingCosmetics();
+        await message.reply('Upcoming cosmetics list cleared!');
+        await updateListMessage();
+        console.log('[Discord] ?clearlist executed by', message.author.tag);
+    } else if (cmd === 'upcoming') {
+        const items = getUpcomingCosmetics();
+        if (items.length === 0) {
+            await message.reply('No upcoming cosmetics tracked yet.');
+            return;
+        }
+
+        const lines = items.map(item => {
+            const price = getPrice(item);
+            const category = getItemCategory(item.ItemId, price);
+            const priceStr = getFormattedPrice(item);
+            return `${item.ItemId} - ${category} - ${priceStr}`;
+        });
+
+        const batchSize = 20;
+        for (let i = 0; i < lines.length; i += batchSize) {
+            const batch = lines.slice(i, i + batchSize);
+            const embed = new EmbedBuilder()
+                .setDescription(batch.join('\n'))
+                .setColor(0x2ECC71);
+
+            await message.channel.send({ embeds: [embed] });
+            if (i + batchSize < lines.length) await sleep(1200);
+        }
+    } else if (cmd === 'reset') {
+        resetBaselines();
+        await message.reply('All baselines and upcoming cosmetics cleared. Baseline will re-scan on next poll.');
+        await updateListMessage();
+    } else if (cmd === 'status') {
+        const uptime = Math.floor((Date.now() - startTime) / 1000);
+        const hours = Math.floor(uptime / 3600);
+        const minutes = Math.floor((uptime % 3600) / 60);
+        const seconds = uptime % 60;
+        const upcoming = getUpcomingCosmetics();
+
+        const embed = new EmbedBuilder()
+            .setTitle('Catalog Tracker Status')
+            .setColor(0x3498DB)
+            .addFields(
+                { name: 'Uptime', value: `${hours}h ${minutes}m ${seconds}s`, inline: true },
+                { name: 'Poll interval', value: `${config.pollIntervalSeconds}s`, inline: true },
+                { name: 'Last check', value: lastCheckTime ? `<t:${Math.floor(lastCheckTime / 1000)}:R>` : 'Never', inline: true },
+                { name: 'Catalog items (last)', value: `${lastCheckItemCount}`, inline: true },
+                { name: 'Upcoming cosmetics', value: `${upcoming.length}`, inline: true },
+            );
+
+        await message.channel.send({ embeds: [embed] });
+    } else if (cmd === 'buy') {
+        // Delete message to avoid exposing ticket in public chat
+        try { await message.delete(); } catch {}
+
+        if (parts.length < 4) {
+            await message.channel.send('⚠️ Usage: `?buy <sessionticket> <itemid> <price> [currency]`\n*Tip: Use `/buy` slash command for private ephemeral responses.*');
+            return;
+        }
+
+        const ticket = parts[1];
+        const itemId = parts[2];
+        const price = parseInt(parts[3]) || 0;
+        const currency = parts[4] || 'SR';
+
+        const replyMsg = await message.channel.send(`Processing purchase for item \`${itemId}\`...`);
+        try {
+            const result = await purchaseItem(ticket, itemId, price, currency);
+            if (result.code === 200) {
+                const embed = new EmbedBuilder()
+                    .setTitle('Item Purchased Successfully! 🎉')
+                    .setColor(0x2ECC71)
+                    .addFields(
+                        { name: 'Item ID', value: `\`${itemId}\``, inline: true },
+                        { name: 'Price Paid', value: `${price} ${getCurrencyName(currency)}`, inline: true },
+                    )
+                    .setTimestamp();
+                await replyMsg.edit({ content: '', embeds: [embed] });
+            } else {
+                const embed = new EmbedBuilder()
+                    .setTitle('Purchase Failed ❌')
+                    .setColor(0xE74C3C)
+                    .setDescription(`**Error (${result.code || 'Unknown'}):** ${result.errorMessage || result.status || 'Failed to purchase item.'}`)
+                    .setTimestamp();
+                await replyMsg.edit({ content: '', embeds: [embed] });
+            }
+        } catch (e) {
+            await replyMsg.edit(`❌ Error during purchase: ${e.message}`);
+        }
+    }
+}
+
+// ─── Slash Command Handlers ──────────────────────────────────────
+
+async function handleBuy(interaction) {
+    // Defer reply as ephemeral so session tickets are kept 100% private
+    await interaction.deferReply({ ephemeral: true });
+
+    const ticket = interaction.options.getString('sessionticket');
+    const itemId = interaction.options.getString('itemid');
+    const price = interaction.options.getInteger('price');
+    const currency = interaction.options.getString('currency') || 'SR';
+
+    try {
+        const result = await purchaseItem(ticket, itemId, price, currency);
+
+        if (result.code === 200) {
+            const purchasedItems = result.data?.Items || [];
+            const itemNames = purchasedItems.map(i => `\`${i.ItemId}\` (Instance: \`${i.ItemInstanceId || 'N/A'}\`)`).join('\n') || `\`${itemId}\``;
+
+            const embed = new EmbedBuilder()
+                .setTitle('Item Purchased Successfully! 🎉')
+                .setColor(0x2ECC71)
+                .addFields(
+                    { name: 'Item ID', value: `\`${itemId}\``, inline: true },
+                    { name: 'Price Paid', value: `${price} ${getCurrencyName(currency)}`, inline: true },
+                    { name: 'Purchased Items', value: itemNames, inline: false },
+                )
+                .setTimestamp();
+
+            await interaction.editReply({ embeds: [embed] });
+        } else {
+            const embed = new EmbedBuilder()
+                .setTitle('Purchase Failed ❌')
+                .setColor(0xE74C3C)
+                .setDescription(`**Error (${result.code || 'Unknown'}):** ${result.errorMessage || result.status || 'Failed to purchase item.'}`)
+                .addFields(
+                    { name: 'Item ID', value: `\`${itemId}\``, inline: true },
+                    { name: 'Attempted Price', value: `${price} ${currency}`, inline: true },
+                )
+                .setTimestamp();
+
+            await interaction.editReply({ embeds: [embed] });
+        }
+    } catch (err) {
+        await interaction.editReply({
+            content: `❌ Error during purchase: ${err.message}`,
+        });
+    }
+}
+
+async function handleUpcoming(interaction) {
+    const items = getUpcomingCosmetics();
+    if (items.length === 0) {
+        await interaction.reply({ content: 'No upcoming cosmetics tracked yet.', ephemeral: true });
+        return;
+    }
+
+    await interaction.deferReply();
+
+    const lines = items.map(item => {
+        const price = getPrice(item);
+        const category = getItemCategory(item.ItemId, price);
+        const priceStr = getFormattedPrice(item);
+        return `${item.ItemId} - ${category} - ${priceStr}`;
+    });
+
+    const batchSize = 20;
+    for (let i = 0; i < lines.length; i += batchSize) {
+        const batch = lines.slice(i, i + batchSize);
+        const embed = new EmbedBuilder()
+            .setDescription(batch.join('\n'))
+            .setColor(0x2ECC71);
+
+        if (i === 0) {
+            await interaction.editReply({ embeds: [embed] });
+        } else {
+            await sendToSpecificChannel(interaction.channel, embed);
+        }
+        if (i + batchSize < lines.length) {
+            await sleep(1200);
+        }
+    }
+}
+
+async function handleReset(interaction) {
+    resetBaselines();
+    await interaction.reply({ content: 'All baselines and upcoming cosmetics cleared. Changes will be detected on next poll.', ephemeral: true });
+    await updateListMessage();
+}
+
+async function handleClearList(interaction) {
+    clearUpcomingCosmetics();
+    await interaction.reply({ content: 'Upcoming cosmetics list cleared!', ephemeral: true });
+    await updateListMessage();
+    console.log('[Discord] /clearlist executed by', interaction.user.tag);
+}
+
+async function handleStatus(interaction) {
+    const uptime = Math.floor((Date.now() - startTime) / 1000);
+    const hours = Math.floor(uptime / 3600);
+    const minutes = Math.floor((uptime % 3600) / 60);
+    const seconds = uptime % 60;
+
+    const upcoming = getUpcomingCosmetics();
+
+    const embed = new EmbedBuilder()
+        .setTitle('Catalog Tracker Status')
+        .setColor(0x3498DB)
+        .addFields(
+            { name: 'Uptime', value: `${hours}h ${minutes}m ${seconds}s`, inline: true },
+            { name: 'Poll interval', value: `${config.pollIntervalSeconds}s`, inline: true },
+            { name: 'Last check', value: lastCheckTime ? `<t:${Math.floor(lastCheckTime / 1000)}:R>` : 'Never', inline: true },
+            { name: 'Catalog items (last)', value: `${lastCheckItemCount}`, inline: true },
+            { name: 'Upcoming cosmetics', value: `${upcoming.length}`, inline: true },
+        );
+
+    await interaction.reply({ embeds: [embed] });
+}
+
+// ─── Auto-Updating List Message ──────────────────────────────────
+
+async function updateListMessage() {
+    if (!listChannel) {
+        console.warn('[Discord] No list channel set, skipping list update.');
+        return;
+    }
+
+    const items = getUpcomingCosmetics();
+
+    let description;
+    if (items.length === 0) {
+        description = '*No upcoming cosmetics tracked yet.*';
+    } else {
+        const lines = items.map(item => {
+            const price = getPrice(item);
+            const category = getItemCategory(item.ItemId, price);
+            const priceStr = getFormattedPrice(item);
+            return `${item.ItemId} - ${category} - ${priceStr}`;
+        });
+        description = lines.join('\n');
+    }
+
+    const embeds = [];
+    if (description.length <= 4000) {
+        embeds.push(new EmbedBuilder()
+            .setTitle(`Upcoming Cosmetics (${items.length})`)
+            .setDescription(description)
+            .setColor(0x9B59B6)
+            .setTimestamp());
+    } else {
+        const lines = description.split('\n');
+        let currentBatch = [];
+        let currentLen = 0;
+        let batchNum = 0;
+
+        for (const line of lines) {
+            if (currentLen + line.length + 1 > 3900 && currentBatch.length > 0) {
+                batchNum++;
+                embeds.push(new EmbedBuilder()
+                    .setTitle(batchNum === 1 ? `Upcoming Cosmetics (${items.length})` : `Upcoming Cosmetics (cont.)`)
+                    .setDescription(currentBatch.join('\n'))
+                    .setColor(0x9B59B6));
+                currentBatch = [];
+                currentLen = 0;
+            }
+            currentBatch.push(line);
+            currentLen += line.length + 1;
+        }
+        if (currentBatch.length > 0) {
+            batchNum++;
+            embeds.push(new EmbedBuilder()
+                .setTitle(batchNum === 1 ? `Upcoming Cosmetics (${items.length})` : `Upcoming Cosmetics (cont.)`)
+                .setDescription(currentBatch.join('\n'))
+                .setColor(0x9B59B6)
+                .setTimestamp());
+        }
+    }
+
+    const savedMsgId = loadListMessageId();
+    if (savedMsgId) {
+        try {
+            const existingMsg = await listChannel.messages.fetch(savedMsgId);
+            if (embeds.length <= 10) {
+                await existingMsg.edit({ embeds });
+                console.log('[Discord] List message updated.');
+                return;
+            } else {
+                await existingMsg.delete();
+            }
+        } catch {
+            console.log('[Discord] Previous list message not found, sending new one.');
+        }
+    }
+
+    try {
+        const msg = await listChannel.send({ embeds: embeds.slice(0, 10) });
+        saveListMessageId(msg.id);
+        console.log('[Discord] List message sent.');
+
+        for (let i = 10; i < embeds.length; i += 10) {
+            await sleep(1200);
+            await listChannel.send({ embeds: embeds.slice(i, i + 10) });
+        }
+    } catch (e) {
+        console.error('[Discord] Failed to send list message:', e.message);
+    }
+}
+
+function loadListMessageId() {
+    try {
+        if (fs.existsSync(LIST_MSG_PATH)) {
+            return fs.readFileSync(LIST_MSG_PATH, 'utf8').trim();
+        }
+    } catch { }
+    return null;
+}
+
+function saveListMessageId(id) {
+    try {
+        fs.writeFileSync(LIST_MSG_PATH, id);
+    } catch (e) {
+        console.error('[Discord] Failed to save list message ID:', e.message);
+    }
+}
+
+// ─── Send Embeds with Rate Limit Handling ────────────────────────
+
+async function sendToSpecificChannel(targetChannel, embed) {
+    if (!targetChannel) {
+        console.warn('[Discord] Target channel not set, skipping message.');
+        return;
+    }
+
+    let retries = 0;
+    const maxRetries = 5;
+
+    while (retries < maxRetries) {
+        try {
+            await targetChannel.send({ embeds: [embed] });
+            return;
+        } catch (err) {
+            if (err.status === 429) {
+                const retryAfter = (err.retryAfter || 1.5) + 0.3;
+                retries++;
+                console.warn(`[Discord] Rate limited (429). Waiting ${retryAfter.toFixed(2)}s (${retries}/${maxRetries})...`);
+                await sleep(retryAfter * 1000);
+            } else {
+                console.error('[Discord] Send error:', err.message);
+                return;
+            }
+        }
+    }
+    console.error('[Discord] Max retries hit for rate limiting.');
+}
+
+// ─── Route Changes to Correct Channels ───────────────────────────
+
+async function sendChanges(changes) {
+    if (changes.length === 0) return;
+
+    let hadCatalogChanges = false;
+
+    for (const change of changes) {
+        let embed;
+        let targetChannel;
+
+        switch (change.type) {
+            case 'new_item':
+                embed = buildNewItemEmbed(change);
+                targetChannel = newItemsChannel || catalogChannel;
+                hadCatalogChanges = true;
+                break;
+            case 'removed_item':
+                embed = buildRemovedItemEmbed(change);
+                targetChannel = catalogChannel;
+                hadCatalogChanges = true;
+                break;
+            case 'name_change':
+                embed = buildNameChangeEmbed(change);
+                targetChannel = priceChangesChannel || catalogChannel;
+                hadCatalogChanges = true;
+                break;
+            case 'price_change':
+                embed = buildPriceChangeEmbed(change);
+                targetChannel = priceChangesChannel || catalogChannel;
+                hadCatalogChanges = true;
+                break;
+            case 'bundle_change':
+                embed = buildBundleChangeEmbed(change);
+                targetChannel = priceChangesChannel || catalogChannel;
+                hadCatalogChanges = true;
+                break;
+            case 'title_data_new':
+                embed = buildTitleDataEmbed('New title data key', change.key, null, change.newValue);
+                targetChannel = titleDataChannel;
+                break;
+            case 'title_data_removed':
+                embed = buildTitleDataEmbed('Title data key removed', change.key, change.oldValue, null);
+                targetChannel = titleDataChannel;
+                break;
+            case 'title_data_changed':
+                embed = buildTitleDataEmbed('Title data value changed', change.key, change.oldValue, change.newValue);
+                targetChannel = titleDataChannel;
+                break;
+            default:
+                continue;
+        }
+
+        await sendToSpecificChannel(targetChannel, embed);
+        await sleep(1200);
+    }
+
+    if (hadCatalogChanges) {
+        await updateListMessage();
+    }
+}
+
+// ─── Embed Builders ──────────────────────────────────────────────
+
+function buildNewItemEmbed(change) {
+    const item = change.item;
+    const embed = new EmbedBuilder()
+        .setTitle('New item added to catalog')
+        .setDescription(`**${item.DisplayName || item.ItemId}**\nID: \`${item.ItemId}\``)
+        .setColor(0x2ECC71);
+
+    if (item.Description) {
+        embed.addFields({ name: 'Description', value: item.Description, inline: false });
+    }
+
+    if (item.Bundle) {
+        embed.addFields({ name: 'Type', value: 'Bundle', inline: true });
+        if (item.Bundle.BundledItems && item.Bundle.BundledItems.length > 0) {
+            embed.addFields({ name: 'Includes items', value: item.Bundle.BundledItems.join(', '), inline: false });
+        }
+        if (item.Bundle.BundledVirtualCurrencies) {
+            const currencies = Object.entries(item.Bundle.BundledVirtualCurrencies)
+                .map(([k, v]) => `${getCurrencyName(k)}: ${v}`).join(', ');
+            if (currencies) embed.addFields({ name: 'Includes currency', value: currencies, inline: false });
+        }
+    }
+
+    embed.addFields({ name: 'Price', value: getPriceString(item), inline: false });
+    return embed;
+}
+
+function buildRemovedItemEmbed(change) {
+    return new EmbedBuilder()
+        .setTitle('Item removed from catalog')
+        .setDescription(`**${change.displayName}**\nID: \`${change.item.ItemId}\``)
+        .setColor(0xE74C3C);
+}
+
+function buildNameChangeEmbed(change) {
+    return new EmbedBuilder()
+        .setTitle('Display name changed')
+        .setDescription(`ID: \`${change.item.ItemId}\``)
+        .setColor(0xF1C40F)
+        .addFields(
+            { name: 'Old name', value: change.oldName || 'None', inline: true },
+            { name: 'New name', value: change.newName || 'None', inline: true },
+        );
+}
+
+function buildPriceChangeEmbed(change) {
+    const embed = new EmbedBuilder()
+        .setTitle('Price changed')
+        .setDescription(`**${change.item.DisplayName || change.item.ItemId}**\nID: \`${change.item.ItemId}\``)
+        .setColor(0xF1C40F);
+
+    const oldV = change.oldItem.VirtualCurrencyPrices || {};
+    const newV = change.item.VirtualCurrencyPrices || {};
+    const allVKeys = [...new Set([...Object.keys(oldV), ...Object.keys(newV)])];
+    for (const key of allVKeys) {
+        const oldVal = key in oldV ? oldV[key].toString() : '\u2013';
+        const newVal = key in newV ? newV[key].toString() : '\u2013';
+        if (oldVal !== newVal) {
+            embed.addFields({ name: getCurrencyName(key), value: `${oldVal} \u2192 ${newVal}`, inline: true });
+        }
+    }
+
+    const oldR = change.oldItem.RealCurrencyPrices || {};
+    const newR = change.item.RealCurrencyPrices || {};
+    const allRKeys = [...new Set([...Object.keys(oldR), ...Object.keys(newR)])];
+    for (const key of allRKeys) {
+        const oldVal = key in oldR ? oldR[key].toString() : '\u2013';
+        const newVal = key in newR ? newR[key].toString() : '\u2013';
+        if (oldVal !== newVal) {
+            embed.addFields({ name: getCurrencyName(key), value: `${oldVal} \u2192 ${newVal}`, inline: true });
+        }
+    }
+
+    return embed;
+}
+
+function buildBundleChangeEmbed(change) {
+    const embed = new EmbedBuilder()
+        .setTitle('Bundle content changed')
+        .setDescription(`**${change.item.DisplayName || change.item.ItemId}**\nID: \`${change.item.ItemId}\``)
+        .setColor(0xF1C40F);
+
+    const oldItems = (change.oldItem.Bundle?.BundledItems || []).sort();
+    const newItems = (change.item.Bundle?.BundledItems || []).sort();
+    if (JSON.stringify(oldItems) !== JSON.stringify(newItems)) {
+        embed.addFields({
+            name: 'Bundled items changed',
+            value: `Old: ${oldItems.join(', ') || 'None'}\nNew: ${newItems.join(', ') || 'None'}`,
+            inline: false,
+        });
+    }
+
+    const oldCur = change.oldItem.Bundle?.BundledVirtualCurrencies || {};
+    const newCur = change.item.Bundle?.BundledVirtualCurrencies || {};
+    if (JSON.stringify(oldCur) !== JSON.stringify(newCur)) {
+        const oldStr = Object.entries(oldCur).map(([k, v]) => `${getCurrencyName(k)}: ${v}`).join(', ') || 'None';
+        const newStr = Object.entries(newCur).map(([k, v]) => `${getCurrencyName(k)}: ${v}`).join(', ') || 'None';
+        embed.addFields({ name: 'Bundled currency changed', value: `Old: ${oldStr}\nNew: ${newStr}`, inline: false });
+    }
+
+    return embed;
+}
+
+function buildTitleDataEmbed(title, key, oldValue, newValue) {
+    let color = 0xF1C40F;
+    if (oldValue === null || oldValue === undefined) color = 0x2ECC71;
+    if (newValue === null || newValue === undefined) color = 0xE74C3C;
+
+    const embed = new EmbedBuilder()
+        .setTitle(title)
+        .setDescription(`Key: \`${key}\``)
+        .setColor(color);
+
+    if (oldValue !== null && oldValue !== undefined && newValue !== null && newValue !== undefined) {
+        embed.addFields(
+            { name: 'Old value', value: prettyFormat(oldValue), inline: false },
+            { name: 'New value', value: prettyFormat(newValue), inline: false },
+        );
+    } else if (newValue !== null && newValue !== undefined) {
+        embed.addFields({ name: 'New value', value: prettyFormat(newValue), inline: false });
+    } else if (oldValue !== null && oldValue !== undefined) {
+        embed.addFields({ name: 'Old value', value: prettyFormat(oldValue), inline: false });
+    }
+
+    return embed;
+}
+
+function prettyFormat(input) {
+    if (!input) return '*(empty)*';
+
+    let cleaned = input.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n').trim();
+
+    if ((cleaned.startsWith('{') && cleaned.endsWith('}')) || (cleaned.startsWith('[') && cleaned.endsWith(']'))) {
+        try {
+            const parsed = JSON.parse(cleaned);
+            const formatted = JSON.stringify(parsed, null, 2);
+            return wrapCodeBlock(formatted, 'json');
+        } catch { }
+    }
+
+    return wrapCodeBlock(cleaned, 'txt');
+}
+
+function wrapCodeBlock(text, lang) {
+    const maxLen = 950;
+    if (text.length > maxLen) {
+        text = text.substring(0, maxLen) + '\n... (truncated)';
+    }
+    return '```' + lang + '\n' + text + '\n```';
+}
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function updateCheckStats(itemCount) {
+    lastCheckTime = Date.now();
+    lastCheckItemCount = itemCount;
+}
+
+module.exports = { initBot, sendChanges, updateCheckStats, updateListMessage, sleep };

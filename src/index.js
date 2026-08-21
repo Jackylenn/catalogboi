@@ -1,0 +1,153 @@
+﻿const config = require('./config');
+const steam = require('./steam');
+const playfab = require('./playfab');
+const { diffCatalog, diffTitleData } = require('./tracker');
+const { initBot, sendChanges, updateCheckStats, updateListMessage, sleep } = require('./discord');
+
+let pollInterval = null;
+let isChecking = false;
+
+async function main() {
+    console.log('=== Gorilla Tag Catalog Tracker Bot ===');
+    console.log(`Poll interval: ${config.pollIntervalSeconds}s (${(config.pollIntervalSeconds / 60).toFixed(1)} min)`);
+
+    // 1. Log into Steam
+    console.log('\n[1/3] Logging into Steam...');
+    try {
+        await steam.login();
+    } catch (e) {
+        console.error('Failed to log into Steam:', e.message);
+        process.exit(1);
+    }
+
+    // 2. Get Steam auth ticket and log into PlayFab
+    console.log('\n[2/3] Authenticating with PlayFab...');
+    try {
+        const ticket = await steam.getAuthTicket();
+        console.log(`[Steam] Got auth ticket (${ticket.length} chars)`);
+        await playfab.loginWithSteam(ticket);
+    } catch (e) {
+        console.error('Failed to authenticate with PlayFab:', e.message);
+        process.exit(1);
+    }
+
+    // 3. Start Discord bot
+    console.log('\n[3/3] Starting Discord bot...');
+    try {
+        await initBot();
+    } catch (e) {
+        console.error('Failed to start Discord bot:', e.message);
+        process.exit(1);
+    }
+
+    console.log('\n=== Bot is running! ===');
+    console.log('Running initial check...\n');
+
+    // Run first check immediately
+    await runCheck();
+
+    // Ensure list channel message is initialized
+    await updateListMessage();
+
+    // Schedule recurring checks
+    pollInterval = setInterval(async () => {
+        await runCheck();
+    }, config.pollIntervalMs);
+}
+
+async function runCheck() {
+    if (isChecking) {
+        console.log('[Check] Already running, skipping...');
+        return;
+    }
+
+    isChecking = true;
+    const timestamp = new Date().toISOString();
+    console.log(`\n[Check] Starting check at ${timestamp}`);
+
+    try {
+        // Re-auth with PlayFab if session expired
+        if (!playfab.getSessionTicket()) {
+            console.log('[Check] Re-authenticating with PlayFab...');
+            const ticket = await steam.getAuthTicket();
+            await playfab.loginWithSteam(ticket);
+        }
+
+        // Fetch catalog
+        console.log('[Check] Fetching catalog...');
+        let catalog;
+        try {
+            catalog = await playfab.getCatalogItems();
+            console.log(`[Check] Catalog: ${catalog.length} items`);
+        } catch (e) {
+            // If auth expired, try re-auth once
+            if (e.message.includes('NotAuthenticated') || e.message.includes('401')) {
+                console.log('[Check] Session expired, re-authenticating...');
+                playfab.clearSession();
+                const ticket = await steam.getAuthTicket();
+                await playfab.loginWithSteam(ticket);
+                catalog = await playfab.getCatalogItems();
+                console.log(`[Check] Catalog: ${catalog.length} items (after re-auth)`);
+            } else {
+                throw e;
+            }
+        }
+
+        // Diff catalog
+        const catalogChanges = diffCatalog(catalog);
+        if (catalogChanges.length > 0) {
+            console.log(`[Check] ${catalogChanges.length} catalog change(s) detected!`);
+            await sendChanges(catalogChanges);
+        } else {
+            console.log('[Check] No catalog changes.');
+        }
+
+        // Fetch title data
+        console.log('[Check] Fetching title data...');
+        let titleData;
+        try {
+            titleData = await playfab.getTitleData();
+            console.log(`[Check] Title data: ${Object.keys(titleData).length} keys`);
+        } catch (e) {
+            console.error('[Check] Failed to fetch title data:', e.message);
+            titleData = null;
+        }
+
+        // Diff title data
+        if (titleData) {
+            const titleChanges = diffTitleData(titleData);
+            if (titleChanges.length > 0) {
+                console.log(`[Check] ${titleChanges.length} title data change(s) detected!`);
+                await sendChanges(titleChanges);
+            } else {
+                console.log('[Check] No title data changes.');
+            }
+        }
+
+        updateCheckStats(catalog.length);
+        console.log(`[Check] Done. Next check in ${config.pollIntervalSeconds}s.`);
+
+    } catch (e) {
+        console.error('[Check] Error during check:', e.message);
+    } finally {
+        isChecking = false;
+    }
+}
+
+// Graceful shutdown
+process.on('SIGINT', () => {
+    console.log('\nShutting down...');
+    if (pollInterval) clearInterval(pollInterval);
+    process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+    console.log('\nShutting down...');
+    if (pollInterval) clearInterval(pollInterval);
+    process.exit(0);
+});
+
+main().catch(e => {
+    console.error('Fatal error:', e);
+    process.exit(1);
+});
