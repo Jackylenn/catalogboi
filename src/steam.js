@@ -1,4 +1,4 @@
-const SteamUser = require('steam-user');
+﻿const SteamUser = require('steam-user');
 const fs = require('fs');
 const path = require('path');
 const config = require('./config');
@@ -9,12 +9,16 @@ let client = null;
 let isLoggedIn = false;
 
 /**
- * Log into Steam headlessly.
- * Uses saved refresh token if available to avoid repeated Steam Guard prompts.
+ * Log into Steam headlessly with minimal RAM footprint.
  */
 function login() {
     return new Promise((resolve, reject) => {
-        client = new SteamUser({ renewRefreshTokens: true });
+        // Disable PICS cache and unneeded data caches to stay well below 40MB RAM
+        client = new SteamUser({
+            renewRefreshTokens: true,
+            enablePicsCache: false,
+            dataDirectory: null,
+        });
 
         // Save refresh token when received
         client.on('refreshToken', (token) => {
@@ -46,7 +50,6 @@ function login() {
         client.on('error', (err) => {
             console.error('[Steam] Login error:', err.message);
             isLoggedIn = false;
-            // If refresh token failed/expired, delete it so next run falls back to password
             if (fs.existsSync(REFRESH_TOKEN_PATH) && (err.eresult === SteamUser.EResult.InvalidPassword || err.eresult === SteamUser.EResult.AccessDenied)) {
                 console.warn('[Steam] Saved refresh token is no longer valid. Removing it.');
                 try { fs.unlinkSync(REFRESH_TOKEN_PATH); } catch { }
@@ -59,13 +62,12 @@ function login() {
             isLoggedIn = false;
         });
 
-        // Check if we have a saved refresh token
         let logOnOptions = {};
         if (fs.existsSync(REFRESH_TOKEN_PATH)) {
             try {
                 const savedToken = fs.readFileSync(REFRESH_TOKEN_PATH, 'utf8').trim();
                 if (savedToken) {
-                    console.log('[Steam] Logging in using saved refresh token (no Steam Guard code required)...');
+                    console.log('[Steam] Logging in using saved refresh token...');
                     logOnOptions = { refreshToken: savedToken };
                 }
             } catch (e) {
@@ -87,11 +89,9 @@ function login() {
 
 /**
  * Get a fresh Steam auth session ticket for PlayFab authentication.
- * Returns the ticket as a hex string.
  */
 async function getAuthTicket() {
     if (!client || !isLoggedIn) {
-        // Wait up to 10 seconds if client is reconnecting
         let waited = 0;
         while ((!client || !isLoggedIn) && waited < 10) {
             await new Promise(r => setTimeout(r, 1000));
