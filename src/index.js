@@ -21,14 +21,24 @@ async function main() {
         process.exit(1);
     }
 
-    // 2. Get Steam auth ticket and log into PlayFab
+    // 2. Get Steam auth ticket and log into PlayFab (with retry)
     console.log('\n[2/3] Authenticating with PlayFab...');
-    try {
-        const ticket = await steam.getAuthTicket();
-        console.log(`[Steam] Got auth ticket (${ticket.length} chars)`);
-        await playfab.loginWithSteam(ticket);
-    } catch (e) {
-        console.error('Failed to authenticate with PlayFab:', e.message);
+    let playfabSuccess = false;
+    for (let attempt = 1; attempt <= 5; attempt++) {
+        try {
+            const ticket = await steam.getAuthTicket();
+            console.log(`[Steam] Got auth ticket (${ticket.length} chars)`);
+            await playfab.loginWithSteam(ticket);
+            playfabSuccess = true;
+            break;
+        } catch (e) {
+            console.warn(`[PlayFab] Attempt ${attempt}/5 failed: ${e.message}`);
+            if (attempt < 5) await sleep(2500);
+        }
+    }
+
+    if (!playfabSuccess) {
+        console.error('Failed to authenticate with PlayFab after multiple attempts.');
         process.exit(1);
     }
 

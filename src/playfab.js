@@ -5,12 +5,40 @@ const BASE_URL = `https://${config.playfab.titleId}.playfabapi.com`;
 let sessionTicket = null;
 
 /**
+ * Robust fetch wrapper with automatic retries for transient socket/terminated errors.
+ */
+async function fetchWithRetry(url, options, maxRetries = 5, delayMs = 1500) {
+    let lastError = null;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            const resp = await fetch(url, options);
+            return resp;
+        } catch (err) {
+            lastError = err;
+            const errMsg = (err.cause?.message || err.message || '').toLowerCase();
+            const isTransient = errMsg.includes('terminated') || errMsg.includes('econnreset') || errMsg.includes('socket') || errMsg.includes('etimedout') || errMsg.includes('fetch failed');
+            if (isTransient && attempt < maxRetries) {
+                console.warn(`[PlayFab] Network glitch (${errMsg}), retrying attempt ${attempt}/${maxRetries} in ${delayMs}ms...`);
+                await new Promise(r => setTimeout(r, delayMs));
+                delayMs *= 1.5;
+            } else {
+                throw err;
+            }
+        }
+    }
+    throw lastError;
+}
+
+/**
  * Login to PlayFab using a Steam auth ticket.
  */
 async function loginWithSteam(steamTicketHex) {
-    const resp = await fetch(`${BASE_URL}/Client/LoginWithSteam`, {
+    const resp = await fetchWithRetry(`${BASE_URL}/Client/LoginWithSteam`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'Content-Type': 'application/json',
+            'User-Agent': 'GorillaTag/PlayFabClient',
+        },
         body: JSON.stringify({
             TitleId: config.playfab.titleId,
             SteamTicket: steamTicketHex,
@@ -46,11 +74,12 @@ async function ensureAuthenticated(force = false) {
 async function playfabRequest(endpoint, body) {
     await ensureAuthenticated();
 
-    let resp = await fetch(`${BASE_URL}${endpoint}`, {
+    let resp = await fetchWithRetry(`${BASE_URL}${endpoint}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'X-Authorization': sessionTicket,
+            'User-Agent': 'GorillaTag/PlayFabClient',
         },
         body: JSON.stringify(body || {}),
     });
@@ -70,11 +99,12 @@ async function playfabRequest(endpoint, body) {
         console.warn(`[PlayFab] Session ticket expired or invalid (${data.errorMessage || data.code}). Renewing...`);
         await ensureAuthenticated(true);
 
-        resp = await fetch(`${BASE_URL}${endpoint}`, {
+        resp = await fetchWithRetry(`${BASE_URL}${endpoint}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-Authorization': sessionTicket,
+                'User-Agent': 'GorillaTag/PlayFabClient',
             },
             body: JSON.stringify(body || {}),
         });
@@ -112,7 +142,7 @@ async function purchaseItem(userSessionTicket, itemId, price, currency = 'SR') {
     if (!itemId) throw new Error('ItemId is required');
 
     const url = `${BASE_URL}/Client/PurchaseItem?sdk=UnitySDK-2.87.200602`;
-    const resp = await fetch(url, {
+    const resp = await fetchWithRetry(url, {
         method: 'POST',
         headers: {
             'accept': '*/*',
