@@ -16,6 +16,7 @@ module.exports = {
         priceChangesChannelId: process.env.PRICE_CHANGES_CHANNEL_ID,
         titleDataChannelId: process.env.TITLE_DATA_CHANNEL_ID,
         listChannelId: process.env.LIST_CHANNEL_ID,
+        statusChannelId: process.env.STATUS_CHANNEL_ID,
     },
     steam: {
         username: process.env.STEAM_USERNAME,

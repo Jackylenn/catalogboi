@@ -12,18 +12,27 @@ let newItemsChannel = null;
 let priceChangesChannel = null;
 let titleDataChannel = null;
 let listChannel = null;
+let statusChannel = null;
 let startTime = Date.now();
 let lastCheckTime = null;
 let lastCheckItemCount = 0;
 
-// Store the list message ID so we can edit it instead of posting new ones
+// Store the message IDs so we can edit them in-place
 const LIST_MSG_PATH = path.join(__dirname, '..', 'data', 'list_message_id.txt');
+const STATUS_MSG_PATH = path.join(__dirname, '..', 'data', 'status_message_id.txt');
 
 // ─── Bot Setup ───────────────────────────────────────────────────
 
 async function initBot() {
+    const clientOptions = {
+        sweepers: {
+            messages: { interval: 60, lifetime: 30 },
+        },
+    };
+
     try {
         client = new Client({
+            ...clientOptions,
             intents: [
                 GatewayIntentBits.Guilds,
                 GatewayIntentBits.GuildMessages,
@@ -36,6 +45,7 @@ async function initBot() {
             console.warn('[Discord] Message Content Intent is not enabled in Discord Developer Portal.');
             console.warn('[Discord] Falling back to Slash Commands only (/upcoming, /clearlist, /status, /reset, /buy)...');
             client = new Client({
+                ...clientOptions,
                 intents: [
                     GatewayIntentBits.Guilds,
                 ],
@@ -68,6 +78,7 @@ async function initBot() {
             priceChangesChannel = await fetchChan(config.discord.priceChangesChannelId, 'Price Changes') || catalogChannel;
             titleDataChannel = await fetchChan(config.discord.titleDataChannelId, 'Title Data');
             listChannel = await fetchChan(config.discord.listChannelId, 'List');
+            statusChannel = await fetchChan(config.discord.statusChannelId, 'Status / Heartbeat');
 
             await registerCommands();
             resolve();
@@ -123,14 +134,14 @@ async function registerCommands() {
     const rest = new REST({ version: '10' }).setToken(config.discord.token);
     const commandPayload = commands.map(c => c.toJSON());
 
-    // 1. Wipe global commands so they don't duplicate with guild commands
+    // 1. Wipe global commands so they don't duplicate
     try {
         await rest.put(Routes.applicationCommands(client.user.id), {
             body: [],
         });
     } catch { }
 
-    // 2. Register ONLY per-guild for INSTANT update and NO duplicates
+    // 2. Register per-guild for instant update
     try {
         const guilds = client.guilds.cache;
         for (const [guildId, guild] of guilds) {
@@ -174,6 +185,7 @@ async function handlePrefixCommand(message) {
         clearUpcomingCosmetics();
         await message.reply('Upcoming cosmetics list cleared!');
         await updateListMessage();
+        await updateStatusMessage();
         console.log('[Discord] ?clearlist executed by', message.author.tag);
     } else if (cmd === 'upcoming') {
         const items = getUpcomingCosmetics();
@@ -203,6 +215,7 @@ async function handlePrefixCommand(message) {
         resetBaselines();
         await message.reply('All baselines and upcoming cosmetics cleared. Baseline will re-scan on next poll.');
         await updateListMessage();
+        await updateStatusMessage();
     } else if (cmd === 'status') {
         const uptime = Math.floor((Date.now() - startTime) / 1000);
         const hours = Math.floor(uptime / 3600);
@@ -223,7 +236,6 @@ async function handlePrefixCommand(message) {
 
         await message.channel.send({ embeds: [embed] });
     } else if (cmd === 'buy') {
-        // Delete message to avoid exposing ticket in public chat
         try { await message.delete(); } catch {}
 
         if (parts.length < 4) {
@@ -266,7 +278,6 @@ async function handlePrefixCommand(message) {
 // ─── Slash Command Handlers ──────────────────────────────────────
 
 async function handleBuy(interaction) {
-    // Defer reply as ephemeral so session tickets are kept 100% private
     await interaction.deferReply({ ephemeral: true });
 
     const ticket = interaction.options.getString('sessionticket');
@@ -350,12 +361,14 @@ async function handleReset(interaction) {
     resetBaselines();
     await interaction.reply({ content: 'All baselines and upcoming cosmetics cleared. Changes will be detected on next poll.', ephemeral: true });
     await updateListMessage();
+    await updateStatusMessage();
 }
 
 async function handleClearList(interaction) {
     clearUpcomingCosmetics();
     await interaction.reply({ content: 'Upcoming cosmetics list cleared!', ephemeral: true });
     await updateListMessage();
+    await updateStatusMessage();
     console.log('[Discord] /clearlist executed by', interaction.user.tag);
 }
 
@@ -379,6 +392,69 @@ async function handleStatus(interaction) {
         );
 
     await interaction.reply({ embeds: [embed] });
+}
+
+// ─── Auto-Updating "Last Seen" / Status Message ──────────────────
+
+async function updateStatusMessage() {
+    if (!statusChannel) return;
+
+    const now = Math.floor(Date.now() / 1000);
+    const uptimeSec = Math.floor((Date.now() - startTime) / 1000);
+    const hours = Math.floor(uptimeSec / 3600);
+    const minutes = Math.floor((uptimeSec % 3600) / 60);
+    const seconds = uptimeSec % 60;
+    const upcoming = getUpcomingCosmetics();
+
+    const embed = new EmbedBuilder()
+        .setTitle('🟢 Bot Status: Online & Tracking')
+        .setColor(0x2ECC71)
+        .setDescription(`**Last seen:** <t:${now}:F> (<t:${now}:R>)`)
+        .addFields(
+            { name: '⏱️ Uptime', value: `${hours}h ${minutes}m ${seconds}s`, inline: true },
+            { name: '🔄 Poll Interval', value: `${config.pollIntervalSeconds}s`, inline: true },
+            { name: '📡 Last Scan', value: lastCheckTime ? `<t:${Math.floor(lastCheckTime / 1000)}:R>` : 'Starting up...', inline: true },
+            { name: '📦 Catalog Items', value: `${lastCheckItemCount || 'N/A'}`, inline: true },
+            { name: '✨ Upcoming Items', value: `${upcoming.length}`, inline: true },
+        )
+        .setFooter({ text: 'Auto-updated every minute • Gorilla Tag 24/7 Tracker' })
+        .setTimestamp();
+
+    const savedId = loadStatusMessageId();
+    if (savedId) {
+        try {
+            const msg = await statusChannel.messages.fetch(savedId);
+            await msg.edit({ embeds: [embed] });
+            return;
+        } catch {
+            console.log('[Discord] Previous status message not found, sending a new one.');
+        }
+    }
+
+    try {
+        const msg = await statusChannel.send({ embeds: [embed] });
+        saveStatusMessageId(msg.id);
+        console.log('[Discord] Status / Last Seen message created.');
+    } catch (e) {
+        console.error('[Discord] Failed to send status message:', e.message);
+    }
+}
+
+function loadStatusMessageId() {
+    try {
+        if (fs.existsSync(STATUS_MSG_PATH)) {
+            return fs.readFileSync(STATUS_MSG_PATH, 'utf8').trim();
+        }
+    } catch { }
+    return null;
+}
+
+function saveStatusMessageId(id) {
+    try {
+        fs.writeFileSync(STATUS_MSG_PATH, id);
+    } catch (e) {
+        console.error('[Discord] Failed to save status message ID:', e.message);
+    }
 }
 
 // ─── Auto-Updating List Message ──────────────────────────────────
@@ -741,4 +817,4 @@ function updateCheckStats(itemCount) {
     lastCheckItemCount = itemCount;
 }
 
-module.exports = { initBot, sendChanges, updateCheckStats, updateListMessage, sleep };
+module.exports = { initBot, sendChanges, updateCheckStats, updateListMessage, updateStatusMessage, sleep };

@@ -2,9 +2,10 @@ const config = require('./config');
 const steam = require('./steam');
 const playfab = require('./playfab');
 const { diffCatalog, diffTitleData } = require('./tracker');
-const { initBot, sendChanges, updateCheckStats, updateListMessage, sleep } = require('./discord');
+const { initBot, sendChanges, updateCheckStats, updateListMessage, updateStatusMessage, sleep } = require('./discord');
 
 let pollInterval = null;
+let statusInterval = null;
 let isChecking = false;
 
 async function main() {
@@ -46,13 +47,19 @@ async function main() {
     // Run first check immediately
     await runCheck();
 
-    // Ensure list channel message is initialized
+    // Ensure list & status channel messages are initialized
     await updateListMessage();
+    await updateStatusMessage();
 
-    // Schedule recurring checks
+    // Schedule recurring catalog checks
     pollInterval = setInterval(async () => {
         await runCheck();
     }, config.pollIntervalMs);
+
+    // Schedule recurring 60s heartbeat / status message updates
+    statusInterval = setInterval(async () => {
+        await updateStatusMessage();
+    }, 60 * 1000);
 }
 
 async function runCheck() {
@@ -125,6 +132,7 @@ async function runCheck() {
         }
 
         updateCheckStats(catalog.length);
+        await updateStatusMessage();
         console.log(`[Check] Done. Next check in ${config.pollIntervalSeconds}s.`);
 
     } catch (e) {
@@ -138,12 +146,14 @@ async function runCheck() {
 process.on('SIGINT', () => {
     console.log('\nShutting down...');
     if (pollInterval) clearInterval(pollInterval);
+    if (statusInterval) clearInterval(statusInterval);
     process.exit(0);
 });
 
 process.on('SIGTERM', () => {
     console.log('\nShutting down...');
     if (pollInterval) clearInterval(pollInterval);
+    if (statusInterval) clearInterval(statusInterval);
     process.exit(0);
 });
 
