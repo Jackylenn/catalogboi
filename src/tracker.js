@@ -8,51 +8,49 @@ const TITLE_DATA_BASELINE = path.join(DATA_DIR, 'title_data_baseline.json');
 const UPCOMING_COSMETICS = path.join(DATA_DIR, 'upcoming_cosmetics.json');
 
 // Ensure data directory exists
-if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+}
 
-// ─── Helpers ─────────────────────────────────────────────────────
+// ─── Price & Currency Helpers ────────────────────────────────────
 
 function getPrice(item) {
-    if (item.VirtualCurrencyPrices) {
-        const keys = Object.keys(item.VirtualCurrencyPrices);
-        if (keys.length > 0) {
-            const price = item.VirtualCurrencyPrices[keys[0]];
-            return price;
-        }
+    if (item.VirtualCurrencyPrices && Object.keys(item.VirtualCurrencyPrices).length > 0) {
+        return Object.values(item.VirtualCurrencyPrices)[0];
     }
-    if (item.RealCurrencyPrices) {
-        const keys = Object.keys(item.RealCurrencyPrices);
-        if (keys.length > 0) return item.RealCurrencyPrices[keys[0]];
+    if (item.RealCurrencyPrices && Object.keys(item.RealCurrencyPrices).length > 0) {
+        return Object.values(item.RealCurrencyPrices)[0];
     }
-    return null;
-}
-
-function getFormattedPrice(item) {
-    const price = getPrice(item);
-    if (price === null || price === undefined) return 'No Price';
-    if (price === 0) return 'Free';
-    return price.toString();
-}
-
-function getCurrencyName(key) {
-    if (key === 'SR') return 'Shiny Rocks';
-    if (key === 'RM') return 'Real Money';
-    return key;
+    return 0;
 }
 
 function getPriceString(item) {
     const parts = [];
     if (item.VirtualCurrencyPrices) {
-        for (const [k, v] of Object.entries(item.VirtualCurrencyPrices)) {
-            parts.push(`${getCurrencyName(k)}: ${v}`);
+        for (const [code, val] of Object.entries(item.VirtualCurrencyPrices)) {
+            parts.push(`${val} ${getCurrencyName(code)}`);
         }
     }
     if (item.RealCurrencyPrices) {
-        for (const [k, v] of Object.entries(item.RealCurrencyPrices)) {
-            parts.push(`${getCurrencyName(k)}: ${v}`);
+        for (const [code, val] of Object.entries(item.RealCurrencyPrices)) {
+            const formatted = (val / 100).toFixed(2);
+            parts.push(`$${formatted} ${code}`);
         }
     }
-    return parts.length > 0 ? parts.join(' | ') : 'None';
+    return parts.length > 0 ? parts.join(', ') : 'Free';
+}
+
+function getFormattedPrice(item) {
+    const price = getPrice(item);
+    return price > 0 ? `${price} Shiny Rocks` : 'Free';
+}
+
+function getCurrencyName(code) {
+    switch (code.toUpperCase()) {
+        case 'SR': return 'Shiny Rocks';
+        case 'RM': return 'Real Money';
+        default: return code;
+    }
 }
 
 function pricesEqual(a, b) {
@@ -60,22 +58,19 @@ function pricesEqual(a, b) {
     const bV = b.VirtualCurrencyPrices || {};
     const aR = a.RealCurrencyPrices || {};
     const bR = b.RealCurrencyPrices || {};
-    return JSON.stringify(sortObj(aV)) === JSON.stringify(sortObj(bV))
-        && JSON.stringify(sortObj(aR)) === JSON.stringify(sortObj(bR));
-}
-
-function sortObj(obj) {
-    return Object.keys(obj).sort().reduce((r, k) => { r[k] = obj[k]; return r; }, {});
+    return JSON.stringify(aV) === JSON.stringify(bV) && JSON.stringify(aR) === JSON.stringify(bR);
 }
 
 function bundlesEqual(a, b) {
-    const aBundle = a.Bundle || null;
-    const bBundle = b.Bundle || null;
-    if (!aBundle && !bBundle) return true;
-    if (!aBundle || !bBundle) return false;
-    const aItems = [...(aBundle.BundledItems || [])].sort();
-    const bItems = [...(bBundle.BundledItems || [])].sort();
+    const aBundle = a.Bundle || {};
+    const bBundle = b.Bundle || {};
+    const aItems = (aBundle.BundledItems || []).slice().sort();
+    const bItems = (bBundle.BundledItems || []).slice().sort();
     if (JSON.stringify(aItems) !== JSON.stringify(bItems)) return false;
+
+    function sortObj(o) {
+        return Object.keys(o).sort().reduce((acc, k) => { acc[k] = o[k]; return acc; }, {});
+    }
     const aCur = sortObj(aBundle.BundledVirtualCurrencies || {});
     const bCur = sortObj(bBundle.BundledVirtualCurrencies || {});
     return JSON.stringify(aCur) === JSON.stringify(bCur);
@@ -138,14 +133,12 @@ function diffCatalog(newCatalog) {
             const newItem = newDict[oldItem.ItemId];
 
             // Name change
-            const oldName = oldItem.DisplayName || '';
-            const newName = newItem.DisplayName || '';
-            if (oldName !== newName) {
+            if ((oldItem.DisplayName || '') !== (newItem.DisplayName || '')) {
                 changes.push({
                     type: 'name_change',
                     item: newItem,
-                    oldName,
-                    newName,
+                    oldName: oldItem.DisplayName,
+                    newName: newItem.DisplayName,
                 });
             }
 
@@ -158,22 +151,24 @@ function diffCatalog(newCatalog) {
                 });
             }
 
-            // Bundle change
-            if (!bundlesEqual(oldItem, newItem)) {
-                changes.push({
-                    type: 'bundle_change',
-                    item: newItem,
-                    oldItem,
-                });
+            // Bundle content change
+            if (oldItem.Bundle || newItem.Bundle) {
+                if (!bundlesEqual(oldItem, newItem)) {
+                    changes.push({
+                        type: 'bundle_change',
+                        item: newItem,
+                        oldItem,
+                    });
+                }
             }
         }
     } else if (isFirstRun) {
-        console.log('[Tracker] First run - saving catalog baseline.');
+        console.log('[Tracker] First run - saving initial catalog baseline.');
     }
 
     // Save new baseline
     try {
-        fs.writeFileSync(CATALOG_BASELINE, JSON.stringify({ Items: newCatalog }, null, 2));
+        fs.writeFileSync(CATALOG_BASELINE, JSON.stringify(newCatalog, null, 2));
         console.log(`[Tracker] Catalog baseline saved (${newCatalog.length} items).`);
     } catch (e) {
         console.error('[Tracker] Failed to save catalog baseline:', e.message);
@@ -260,21 +255,23 @@ function appendToUpcomingCosmetics(newItems) {
     try {
         let existing = [];
         if (fs.existsSync(UPCOMING_COSMETICS)) {
-            existing = JSON.parse(fs.readFileSync(UPCOMING_COSMETICS, 'utf8')) || [];
+            existing = JSON.parse(fs.readFileSync(UPCOMING_COSMETICS, 'utf8'));
         }
 
         const existingIds = new Set(existing.map(i => i.ItemId));
-        let added = 0;
+        let addedCount = 0;
+
         for (const item of newItems) {
             if (!existingIds.has(item.ItemId)) {
                 existing.push(item);
-                added++;
+                existingIds.add(item.ItemId);
+                addedCount++;
             }
         }
 
-        if (added > 0) {
+        if (addedCount > 0) {
             fs.writeFileSync(UPCOMING_COSMETICS, JSON.stringify(existing, null, 2));
-            console.log(`[Tracker] Added ${added} items to upcoming_cosmetics.json (Total: ${existing.length}).`);
+            console.log(`[Tracker] Added ${addedCount} item(s) to upcoming_cosmetics.json (total: ${existing.length})`);
         }
     } catch (e) {
         console.error('[Tracker] Failed to save upcoming cosmetics:', e.message);
@@ -320,6 +317,43 @@ function getUpcomingCosmetics() {
     }
 }
 
+function removeUpcomingCosmetics(itemIds) {
+    const list = getUpcomingCosmetics();
+    const rawIds = (Array.isArray(itemIds) ? itemIds : [itemIds]);
+    
+    // Normalize IDs (support with or without trailing dot, case-insensitive)
+    const normalizedTargets = new Set();
+    for (const raw of rawIds) {
+        const id = raw.trim().toUpperCase();
+        if (!id) continue;
+        normalizedTargets.add(id);
+        if (id.endsWith('.')) {
+            normalizedTargets.add(id.slice(0, -1));
+        } else {
+            normalizedTargets.add(id + '.');
+        }
+    }
+
+    const removed = [];
+    const remaining = list.filter(item => {
+        const idUpper = (item.ItemId || '').toUpperCase();
+        if (normalizedTargets.has(idUpper)) {
+            removed.push(item);
+            return false;
+        }
+        return true;
+    });
+
+    try {
+        fs.writeFileSync(UPCOMING_COSMETICS, JSON.stringify(remaining, null, 2));
+        console.log(`[Tracker] Removed ${removed.length} item(s) from upcoming cosmetics. ${remaining.length} remaining.`);
+    } catch (e) {
+        console.error('[Tracker] Failed to save upcoming cosmetics:', e.message);
+    }
+
+    return { removed, remainingCount: remaining.length };
+}
+
 function clearUpcomingCosmetics() {
     try {
         if (fs.existsSync(UPCOMING_COSMETICS)) {
@@ -344,6 +378,7 @@ module.exports = {
     diffCatalog,
     diffTitleData,
     getUpcomingCosmetics,
+    removeUpcomingCosmetics,
     clearUpcomingCosmetics,
     resetBaselines,
     getFormattedPrice,

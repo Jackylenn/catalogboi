@@ -2,7 +2,7 @@ const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, EmbedBuild
 const fs = require('fs');
 const path = require('path');
 const config = require('./config');
-const { getUpcomingCosmetics, resetBaselines, clearUpcomingCosmetics, getFormattedPrice, getPrice, getPriceString, getCurrencyName } = require('./tracker');
+const { getUpcomingCosmetics, removeUpcomingCosmetics, resetBaselines, clearUpcomingCosmetics, getFormattedPrice, getPrice, getPriceString, getCurrencyName } = require('./tracker');
 const { getItemCategory } = require('./categories');
 const { purchaseItem } = require('./playfab');
 
@@ -108,7 +108,15 @@ async function registerCommands() {
             .setDescription('Show bot uptime, last check time, and item counts'),
         new SlashCommandBuilder()
             .setName('clearlist')
-            .setDescription('Clear the upcoming cosmetics list'),
+            .setDescription('Clear the entire upcoming cosmetics list'),
+        new SlashCommandBuilder()
+            .setName('remove')
+            .setDescription('Remove specific item ID(s) from the upcoming cosmetics list')
+            .addStringOption(opt =>
+                opt.setName('itemids')
+                    .setDescription('Item ID or comma/space-separated IDs to remove (e.g. LSAEE or LSAEE, LBAUX)')
+                    .setRequired(true)
+            ),
         new SlashCommandBuilder()
             .setName('buy')
             .setDescription('Purchase an item in Gorilla Tag using a PlayFab session ticket')
@@ -169,6 +177,8 @@ async function handleInteraction(interaction) {
         await handleStatus(interaction);
     } else if (interaction.commandName === 'clearlist') {
         await handleClearList(interaction);
+    } else if (interaction.commandName === 'remove') {
+        await handleRemove(interaction);
     } else if (interaction.commandName === 'buy') {
         await handleBuy(interaction);
     }
@@ -190,6 +200,32 @@ async function handlePrefixCommand(message) {
         await updateListMessage();
         await updateStatusMessage();
         console.log('[Discord] ?clearlist executed by', message.author.tag);
+    } else if (cmd === 'remove') {
+        const targetIds = parts.slice(1);
+        if (targetIds.length === 0) {
+            await message.reply('⚠️ Usage: `?remove <itemid> [itemid2 ...]` (e.g. `?remove LSAEE`)');
+            return;
+        }
+
+        const { removed, remainingCount } = removeUpcomingCosmetics(targetIds);
+        if (removed.length === 0) {
+            await message.reply(`⚠️ No matching items found in the upcoming list for: \`${targetIds.join(', ')}\``);
+            return;
+        }
+
+        const removedList = removed.map(i => `\`${i.ItemId}\` (${i.DisplayName || 'No Name'})`).join('\n');
+        const embed = new EmbedBuilder()
+            .setTitle('Removed from Upcoming List 🗑️')
+            .setColor(0xE67E22)
+            .addFields(
+                { name: 'Removed Items', value: removedList, inline: false },
+                { name: 'Upcoming Items Remaining', value: `${remainingCount}`, inline: true },
+            )
+            .setTimestamp();
+
+        await message.reply({ embeds: [embed] });
+        await updateListMessage();
+        await updateStatusMessage();
     } else if (cmd === 'upcoming') {
         const items = getUpcomingCosmetics();
         if (items.length === 0) {
@@ -279,6 +315,40 @@ async function handlePrefixCommand(message) {
 }
 
 // ─── Slash Command Handlers ──────────────────────────────────────
+
+async function handleRemove(interaction) {
+    const rawInput = interaction.options.getString('itemids');
+    const targetIds = rawInput.split(/[\s,]+/).filter(Boolean);
+
+    if (targetIds.length === 0) {
+        await interaction.reply({ content: '⚠️ Please specify at least one Item ID to remove.', ephemeral: true });
+        return;
+    }
+
+    const { removed, remainingCount } = removeUpcomingCosmetics(targetIds);
+
+    if (removed.length === 0) {
+        await interaction.reply({
+            content: `⚠️ No matching items found in the upcoming list for: \`${targetIds.join(', ')}\``,
+            ephemeral: true,
+        });
+        return;
+    }
+
+    const removedList = removed.map(i => `\`${i.ItemId}\` (${i.DisplayName || 'No Name'})`).join('\n');
+    const embed = new EmbedBuilder()
+        .setTitle('Removed from Upcoming List 🗑️')
+        .setColor(0xE67E22)
+        .addFields(
+            { name: 'Removed Items', value: removedList, inline: false },
+            { name: 'Upcoming Items Remaining', value: `${remainingCount}`, inline: true },
+        )
+        .setTimestamp();
+
+    await interaction.reply({ embeds: [embed] });
+    await updateListMessage();
+    await updateStatusMessage();
+}
 
 async function handleBuy(interaction) {
     await interaction.deferReply({ ephemeral: true });
