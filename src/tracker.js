@@ -26,23 +26,32 @@ function getPrice(item) {
 
 function getPriceString(item) {
     const parts = [];
-    if (item.VirtualCurrencyPrices) {
+    if (item.VirtualCurrencyPrices && Object.keys(item.VirtualCurrencyPrices).length > 0) {
         for (const [code, val] of Object.entries(item.VirtualCurrencyPrices)) {
             parts.push(`${val} ${getCurrencyName(code)}`);
         }
     }
-    if (item.RealCurrencyPrices) {
+    if (item.RealCurrencyPrices && Object.keys(item.RealCurrencyPrices).length > 0) {
         for (const [code, val] of Object.entries(item.RealCurrencyPrices)) {
             const formatted = (val / 100).toFixed(2);
-            parts.push(`$${formatted} ${code}`);
+            parts.push(`${formatted} ${code}`);
         }
     }
-    return parts.length > 0 ? parts.join(', ') : 'Free';
+    return parts.length > 0 ? parts.join(', ') : 'No Price';
 }
 
 function getFormattedPrice(item) {
-    const price = getPrice(item);
-    return price > 0 ? `${price} Shiny Rocks` : 'Free';
+    if (item.VirtualCurrencyPrices && Object.keys(item.VirtualCurrencyPrices).length > 0) {
+        const val = Object.values(item.VirtualCurrencyPrices)[0];
+        if (val === 0) return 'Free';
+        return `${val} Shiny Rocks`;
+    }
+    if (item.RealCurrencyPrices && Object.keys(item.RealCurrencyPrices).length > 0) {
+        const val = Object.values(item.RealCurrencyPrices)[0];
+        if (val === 0) return 'Free';
+        return `${(val / 100).toFixed(2)}`;
+    }
+    return 'No Price';
 }
 
 function getCurrencyName(code) {
