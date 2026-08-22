@@ -1,3 +1,4 @@
+const https = require('https');
 const config = require('./config');
 const steam = require('./steam');
 
@@ -5,24 +6,74 @@ const BASE_URL = `https://${config.playfab.titleId}.playfabapi.com`;
 let sessionTicket = null;
 
 /**
- * Robust fetch wrapper with automatic retries for transient socket/terminated errors.
+ * Robust native HTTPS request function (immune to Node 18/19 undici fetch socket bugs in Docker).
  */
-async function fetchWithRetry(url, options, maxRetries = 5, delayMs = 1500) {
+function makeHttpsRequest(url, options = {}, body = null) {
+    return new Promise((resolve, reject) => {
+        const urlObj = new URL(url);
+        const headers = Object.assign({
+            'User-Agent': 'UnityPlayer/6000.2.9f1 (UnityWebRequest/1.0, libcurl/8.10.1-DEV)',
+            'Content-Type': 'application/json',
+            'Accept': '*/*',
+        }, options.headers || {});
+
+        const bodyStr = body ? (typeof body === 'string' ? body : JSON.stringify(body)) : null;
+        if (bodyStr) {
+            headers['Content-Length'] = Buffer.byteLength(bodyStr);
+        }
+
+        const reqOptions = {
+            hostname: urlObj.hostname,
+            port: urlObj.port || 443,
+            path: urlObj.pathname + urlObj.search,
+            method: options.method || 'POST',
+            headers: headers,
+            timeout: 15000,
+        };
+
+        const req = https.request(reqOptions, (res) => {
+            const chunks = [];
+            res.on('data', (chunk) => chunks.push(chunk));
+            res.on('end', () => {
+                const responseText = Buffer.concat(chunks).toString('utf8');
+                try {
+                    const data = JSON.parse(responseText);
+                    resolve(data);
+                } catch {
+                    resolve({ code: res.statusCode, raw: responseText });
+                }
+            });
+        });
+
+        req.on('timeout', () => {
+            req.destroy(new Error('PlayFab request timed out (15s)'));
+        });
+
+        req.on('error', (err) => {
+            reject(err);
+        });
+
+        if (bodyStr) {
+            req.write(bodyStr);
+        }
+        req.end();
+    });
+}
+
+/**
+ * Execute request with retry for network resilience.
+ */
+async function requestWithRetry(url, options = {}, body = null, maxRetries = 3) {
     let lastError = null;
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-            const resp = await fetch(url, options);
-            return resp;
+            const result = await makeHttpsRequest(url, options, body);
+            return result;
         } catch (err) {
             lastError = err;
-            const errMsg = (err.cause?.message || err.message || '').toLowerCase();
-            const isTransient = errMsg.includes('terminated') || errMsg.includes('econnreset') || errMsg.includes('socket') || errMsg.includes('etimedout') || errMsg.includes('fetch failed');
-            if (isTransient && attempt < maxRetries) {
-                console.warn(`[PlayFab] Network glitch (${errMsg}), retrying attempt ${attempt}/${maxRetries} in ${delayMs}ms...`);
-                await new Promise(r => setTimeout(r, delayMs));
-                delayMs *= 1.5;
-            } else {
-                throw err;
+            if (attempt < maxRetries) {
+                console.warn(`[PlayFab] Connection attempt ${attempt}/${maxRetries} failed (${err.message}). Retrying in 2s...`);
+                await new Promise(r => setTimeout(r, 2000));
             }
         }
     }
@@ -33,20 +84,14 @@ async function fetchWithRetry(url, options, maxRetries = 5, delayMs = 1500) {
  * Login to PlayFab using a Steam auth ticket.
  */
 async function loginWithSteam(steamTicketHex) {
-    const resp = await fetchWithRetry(`${BASE_URL}/Client/LoginWithSteam`, {
+    const data = await requestWithRetry(`${BASE_URL}/Client/LoginWithSteam`, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'User-Agent': 'GorillaTag/PlayFabClient',
-        },
-        body: JSON.stringify({
-            TitleId: config.playfab.titleId,
-            SteamTicket: steamTicketHex,
-            CreateAccount: false,
-        }),
+    }, {
+        TitleId: config.playfab.titleId,
+        SteamTicket: steamTicketHex,
+        CreateAccount: false,
     });
 
-    const data = await resp.json();
     if (data.code !== 200) {
         throw new Error(`PlayFab login failed (${data.code}): ${data.errorMessage || JSON.stringify(data)}`);
     }
@@ -74,17 +119,12 @@ async function ensureAuthenticated(force = false) {
 async function playfabRequest(endpoint, body) {
     await ensureAuthenticated();
 
-    let resp = await fetchWithRetry(`${BASE_URL}${endpoint}`, {
+    let data = await requestWithRetry(`${BASE_URL}${endpoint}`, {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
             'X-Authorization': sessionTicket,
-            'User-Agent': 'GorillaTag/PlayFabClient',
         },
-        body: JSON.stringify(body || {}),
-    });
-
-    let data = await resp.json();
+    }, body || {});
 
     // If session expired or unauthorized, automatically renew ticket and retry once
     const isAuthError = data.code === 401
@@ -99,16 +139,12 @@ async function playfabRequest(endpoint, body) {
         console.warn(`[PlayFab] Session ticket expired or invalid (${data.errorMessage || data.code}). Renewing...`);
         await ensureAuthenticated(true);
 
-        resp = await fetchWithRetry(`${BASE_URL}${endpoint}`, {
+        data = await requestWithRetry(`${BASE_URL}${endpoint}`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
                 'X-Authorization': sessionTicket,
-                'User-Agent': 'GorillaTag/PlayFabClient',
             },
-            body: JSON.stringify(body || {}),
-        });
-        data = await resp.json();
+        }, body || {});
     }
 
     if (data.code !== 200) {
@@ -142,29 +178,24 @@ async function purchaseItem(userSessionTicket, itemId, price, currency = 'SR') {
     if (!itemId) throw new Error('ItemId is required');
 
     const url = `${BASE_URL}/Client/PurchaseItem?sdk=UnitySDK-2.87.200602`;
-    const resp = await fetchWithRetry(url, {
+    const data = await requestWithRetry(url, {
         method: 'POST',
         headers: {
-            'accept': '*/*',
-            'content-type': 'application/json',
-            'user-agent': 'UnityPlayer/6000.2.9f1 (UnityWebRequest/1.0, libcurl/8.10.1-DEV)',
             'x-authorization': userSessionTicket.trim(),
             'x-playfabsdk': 'UnitySDK-2.87.200602',
             'x-reporterrorassuccess': 'true',
             'x-unity-version': '6000.2.9f1',
         },
-        body: JSON.stringify({
-            CatalogVersion: 'DLC',
-            CharacterId: null,
-            ItemId: itemId.trim(),
-            Price: parseInt(price) || 0,
-            StoreId: null,
-            VirtualCurrency: (currency || 'SR').trim(),
-            AuthenticationContext: null,
-        }),
+    }, {
+        CatalogVersion: 'DLC',
+        CharacterId: null,
+        ItemId: itemId.trim(),
+        Price: parseInt(price) || 0,
+        StoreId: null,
+        VirtualCurrency: (currency || 'SR').trim(),
+        AuthenticationContext: null,
     });
 
-    const data = await resp.json();
     return data;
 }
 
