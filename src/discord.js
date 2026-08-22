@@ -62,7 +62,10 @@ async function initBot() {
 
             // Fetch configured channels
             async function fetchChan(id, name) {
-                if (!id) return null;
+                if (!id) {
+                    console.log(`[Discord] ${name} channel: (not set in .env)`);
+                    return null;
+                }
                 try {
                     const ch = await client.channels.fetch(id);
                     console.log(`[Discord] ${name} channel: #${ch?.name || id}`);
@@ -402,17 +405,38 @@ async function updateStatusMessage() {
     const now = Math.floor(Date.now() / 1000);
     const text = `Last seen <t:${now}:R>`;
 
+    // 1. Try saved ID from disk
     const savedId = loadStatusMessageId();
     if (savedId) {
         try {
             const msg = await statusChannel.messages.fetch(savedId);
-            await msg.edit({ content: text, embeds: [] });
-            return;
-        } catch {
-            console.log('[Discord] Previous status message not found, creating a new one.');
-        }
+            if (msg) {
+                await msg.edit({ content: text, embeds: [] });
+                return;
+            }
+        } catch { }
     }
 
+    // 2. Scan channel for existing bot messages to avoid duplicate creation on restarts
+    try {
+        const fetched = await statusChannel.messages.fetch({ limit: 10 });
+        const botMessages = fetched.filter(m => m.author.id === client.user.id);
+        
+        if (botMessages.size > 0) {
+            const firstMsg = botMessages.first();
+            await firstMsg.edit({ content: text, embeds: [] });
+            saveStatusMessageId(firstMsg.id);
+
+            // Delete any extra duplicate bot messages in status channel
+            const extraMessages = botMessages.filter(m => m.id !== firstMsg.id);
+            for (const [, extra] of extraMessages) {
+                try { await extra.delete(); } catch { }
+            }
+            return;
+        }
+    } catch { }
+
+    // 3. If none found, create a new one
     try {
         const msg = await statusChannel.send({ content: text });
         saveStatusMessageId(msg.id);
@@ -443,7 +467,6 @@ function saveStatusMessageId(id) {
 
 async function updateListMessage() {
     if (!listChannel) {
-        console.warn('[Discord] No list channel set, skipping list update.');
         return;
     }
 
@@ -504,15 +527,23 @@ async function updateListMessage() {
             const existingMsg = await listChannel.messages.fetch(savedMsgId);
             if (embeds.length <= 10) {
                 await existingMsg.edit({ embeds });
-                console.log('[Discord] List message updated.');
                 return;
             } else {
                 await existingMsg.delete();
             }
-        } catch {
-            console.log('[Discord] Previous list message not found, sending new one.');
-        }
+        } catch { }
     }
+
+    // Check for existing bot list message in channel to avoid duplicates on container restart
+    try {
+        const fetched = await listChannel.messages.fetch({ limit: 10 });
+        const botListMsg = fetched.find(m => m.author.id === client.user.id && m.embeds.length > 0 && m.embeds[0].title?.includes('Upcoming Cosmetics'));
+        if (botListMsg) {
+            await botListMsg.edit({ embeds });
+            saveListMessageId(botListMsg.id);
+            return;
+        }
+    } catch { }
 
     try {
         const msg = await listChannel.send({ embeds: embeds.slice(0, 10) });
@@ -549,7 +580,6 @@ function saveListMessageId(id) {
 
 async function sendToSpecificChannel(targetChannel, embed) {
     if (!targetChannel) {
-        console.warn('[Discord] Target channel not set, skipping message.');
         return;
     }
 
