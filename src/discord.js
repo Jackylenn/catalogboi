@@ -394,47 +394,29 @@ async function handleStatus(interaction) {
     await interaction.reply({ embeds: [embed] });
 }
 
-// ─── Auto-Updating "Last Seen" / Status Message ──────────────────
+// ─── Auto-Updating Simple 1-Line "Last seen" Message ─────────────
 
 async function updateStatusMessage() {
     if (!statusChannel) return;
 
     const now = Math.floor(Date.now() / 1000);
-    const uptimeSec = Math.floor((Date.now() - startTime) / 1000);
-    const hours = Math.floor(uptimeSec / 3600);
-    const minutes = Math.floor((uptimeSec % 3600) / 60);
-    const seconds = uptimeSec % 60;
-    const upcoming = getUpcomingCosmetics();
-
-    const embed = new EmbedBuilder()
-        .setTitle('🟢 Bot Status: Online & Tracking')
-        .setColor(0x2ECC71)
-        .setDescription(`**Last seen:** <t:${now}:F> (<t:${now}:R>)`)
-        .addFields(
-            { name: '⏱️ Uptime', value: `${hours}h ${minutes}m ${seconds}s`, inline: true },
-            { name: '🔄 Poll Interval', value: `${config.pollIntervalSeconds}s`, inline: true },
-            { name: '📡 Last Scan', value: lastCheckTime ? `<t:${Math.floor(lastCheckTime / 1000)}:R>` : 'Starting up...', inline: true },
-            { name: '📦 Catalog Items', value: `${lastCheckItemCount || 'N/A'}`, inline: true },
-            { name: '✨ Upcoming Items', value: `${upcoming.length}`, inline: true },
-        )
-        .setFooter({ text: 'Auto-updated every minute • Gorilla Tag 24/7 Tracker' })
-        .setTimestamp();
+    const text = `Last seen <t:${now}:R>`;
 
     const savedId = loadStatusMessageId();
     if (savedId) {
         try {
             const msg = await statusChannel.messages.fetch(savedId);
-            await msg.edit({ embeds: [embed] });
+            await msg.edit({ content: text, embeds: [] });
             return;
         } catch {
-            console.log('[Discord] Previous status message not found, sending a new one.');
+            console.log('[Discord] Previous status message not found, creating a new one.');
         }
     }
 
     try {
-        const msg = await statusChannel.send({ embeds: [embed] });
+        const msg = await statusChannel.send({ content: text });
         saveStatusMessageId(msg.id);
-        console.log('[Discord] Status / Last Seen message created.');
+        console.log('[Discord] Simple Last seen message created.');
     } catch (e) {
         console.error('[Discord] Failed to send status message:', e.message);
     }
