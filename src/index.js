@@ -2,7 +2,8 @@ const config = require('./config');
 const steam = require('./steam');
 const playfab = require('./playfab');
 const { diffCatalog, diffTitleData, syncUpcomingNamesFromMapping } = require('./tracker');
-const { initBot, sendChanges, updateCheckStats, updateListMessage, updateStatusMessage, sleep } = require('./discord');
+const { initBot, sendChanges, updateCheckStats, updateListMessage, updateStatusMessage, sleep, getClient } = require('./discord');
+const { checkHierarchyDumpsOnStartup } = require('./hierarchy');
 
 let pollInterval = null;
 let statusInterval = null;
