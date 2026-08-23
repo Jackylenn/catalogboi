@@ -13,6 +13,7 @@ let priceChangesChannel = null;
 let titleDataChannel = null;
 let listChannel = null;
 let statusChannel = null;
+let cosmeticsControllerChannel = null;
 let startTime = Date.now();
 let lastCheckTime = null;
 let lastCheckItemCount = 0;
@@ -120,6 +121,14 @@ async function registerCommands() {
             .setName('clearlist')
             .setDescription('Clear the entire upcoming cosmetics list'),
         new SlashCommandBuilder()
+            .setName('checkcosmeticscontroller')
+            .setDescription('Upload a new CosmeticsController dump to diff and update item names/prices')
+            .addAttachmentOption(opt =>
+                opt.setName('file')
+                    .setDescription('The new CosmeticsController .txt file')
+                    .setRequired(true)
+            ),
+        new SlashCommandBuilder()
             .setName('remove')
             .setDescription('Remove specific item ID(s) from the upcoming cosmetics list')
             .addStringOption(opt =>
@@ -187,6 +196,8 @@ async function handleInteraction(interaction) {
         await handleStatus(interaction);
     } else if (interaction.commandName === 'clearlist') {
         await handleClearList(interaction);
+    } else if (interaction.commandName === 'checkcosmeticscontroller') {
+        await handleCheckCosmeticsController(interaction);
     } else if (interaction.commandName === 'remove') {
         await handleRemove(interaction);
     } else if (interaction.commandName === 'buy') {
@@ -210,6 +221,35 @@ async function handlePrefixCommand(message) {
         await updateListMessage();
         await updateStatusMessage();
         console.log('[Discord] ?clearlist executed by', message.author.tag);
+    } else if (cmd === 'checkcosmeticscontroller') {
+        const attachment = message.attachments.first();
+        if (!attachment) {
+            await message.reply('⚠️ Please attach a CosmeticsController `.txt` file with `?checkcosmeticscontroller`.');
+            return;
+        }
+
+        try {
+            const resp = await fetch(attachment.url);
+            const newText = await resp.text();
+            const oldText = getCosmeticsControllerBaselineText();
+
+            const diff = diffCosmeticsController(oldText, newText);
+            const targetChan = cosmeticsControllerChannel || message.channel;
+
+            await sendCosmeticsControllerDiffEmbeds(targetChan, diff);
+            updateCosmeticsControllerBaseline(newText);
+            await updateListMessage();
+            await updateStatusMessage();
+
+            const replyEmbed = new EmbedBuilder()
+                .setTitle('CosmeticsController Check Complete')
+                .setColor(0x2B2D31)
+                .setDescription(`Processed **+${diff.added.length}** added, **~${diff.modified.length}** modified, **-${diff.removed.length}** removed.\nBaseline saved & upcoming cosmetics list updated.`);
+
+            await message.reply({ embeds: [replyEmbed] });
+        } catch (err) {
+            await message.reply(`❌ Error checking CosmeticsController: ${err.message}`);
+        }
     } else if (cmd === 'remove') {
         const targetIds = parts.slice(1);
         if (targetIds.length === 0) {
@@ -320,6 +360,96 @@ async function handlePrefixCommand(message) {
 }
 
 // ─── Slash Command Handlers ──────────────────────────────────────
+
+
+async function handleCheckCosmeticsController(interaction) {
+    const attachment = interaction.options.getAttachment('file');
+    if (!attachment) {
+        await interaction.reply({ content: '⚠️ Please attach a valid file.', ephemeral: true });
+        return;
+    }
+
+    await interaction.deferReply();
+
+    try {
+        const resp = await fetch(attachment.url);
+        const newText = await resp.text();
+        const oldText = getCosmeticsControllerBaselineText();
+
+        const diff = diffCosmeticsController(oldText, newText);
+        const targetChan = cosmeticsControllerChannel || interaction.channel;
+
+        await sendCosmeticsControllerDiffEmbeds(targetChan, diff);
+        updateCosmeticsControllerBaseline(newText);
+        await updateListMessage();
+        await updateStatusMessage();
+
+        const replyEmbed = new EmbedBuilder()
+            .setTitle('CosmeticsController Check Complete')
+            .setColor(0x2B2D31)
+            .setDescription(`Processed **+${diff.added.length}** added, **~${diff.modified.length}** modified, **-${diff.removed.length}** removed.\n\nBaseline saved to data/item_names.txt & upcoming cosmetics list updated.`);
+
+        await interaction.editReply({ embeds: [replyEmbed] });
+    } catch (err) {
+        await interaction.editReply({ content: `❌ Error processing CosmeticsController file: ${err.message}` });
+    }
+}
+
+async function sendCosmeticsControllerDiffEmbeds(channel, diff) {
+    const { added, modified, removed } = diff;
+
+    if (added.length === 0 && modified.length === 0 && removed.length === 0) {
+        const embed = new EmbedBuilder()
+            .setTitle('CosmeticsController: No Changes Detected')
+            .setColor(0x2B2D31)
+            .setDescription('*The uploaded file is identical to the current baseline.*');
+        await channel.send({ embeds: [embed] });
+        return;
+    }
+
+    const lines = [];
+    for (const a of added) {
+        lines.push(`+ ${a.id} // ${a.name} // ${a.price}`);
+    }
+    for (const m of modified) {
+        const nameChange = m.oldName !== m.newName ? ` (Name: "${m.oldName}" -> "${m.newName}")` : '';
+        const priceChange = m.oldPrice !== m.newPrice ? ` (Price: "${m.oldPrice}" -> "${m.newPrice}")` : '';
+        lines.push(`~ ${m.id} // ${m.newName} // ${m.newPrice}${nameChange}${priceChange}`);
+    }
+    for (const r of removed) {
+        lines.push(`- ${r.id} // ${r.name} // ${r.price}`);
+    }
+
+    const maxChars = 3800;
+    const blocks = [];
+    let cur = [];
+    let curLen = 0;
+
+    for (const line of lines) {
+        if (curLen + line.length + 1 > maxChars && cur.length > 0) {
+            blocks.push(cur);
+            cur = [];
+            curLen = 0;
+        }
+        cur.push(line);
+        curLen += line.length + 1;
+    }
+    if (cur.length > 0) blocks.push(cur);
+
+    for (let i = 0; i < blocks.length; i++) {
+        const title = blocks.length === 1
+            ? `CosmeticsController Changes (+${added.length}, ~${modified.length}, -${removed.length})`
+            : `CosmeticsController Changes (${i + 1}/${blocks.length})`;
+
+        const embed = new EmbedBuilder()
+            .setTitle(title)
+            .setColor(0x2B2D31)
+            .setDescription('\`\`\`diff\n' + blocks[i].join('\n') + '\n\`\`\`');
+
+        await channel.send({ embeds: [embed] });
+        if (i + 1 < blocks.length) await sleep(1000);
+    }
+}
 
 async function handleRemove(interaction) {
     const rawInput = interaction.options.getString('itemids');

@@ -325,6 +325,114 @@ function getItemDisplayName(itemId, fallbackDisplayName = null) {
 /**
  * Sync DisplayNames for all items in upcoming_cosmetics.json from the item names mapping.
  */
+
+/**
+ * Parse CosmeticsController text into a Map of { idUpper -> { id, name, price, raw } }
+ */
+function parseCosmeticsControllerText(text) {
+    const map = new Map();
+    if (!text) return map;
+    const lines = text.split(/\r?\n/);
+    for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) continue;
+        if (trimmed.includes('//')) {
+            const parts = trimmed.split('//').map(s => s.trim());
+            if (parts.length >= 2 && parts[0]) {
+                const id = parts[0];
+                if (id.toLowerCase() === 'null') continue;
+                const name = parts[1] || '';
+                const price = parts[2] || 'No Price';
+                map.set(id.toUpperCase(), {
+                    id,
+                    name,
+                    price,
+                    raw: trimmed,
+                });
+            }
+        }
+    }
+    return map;
+}
+
+/**
+ * Diff two CosmeticsController text dumps.
+ */
+function diffCosmeticsController(oldText, newText) {
+    const oldMap = parseCosmeticsControllerText(oldText);
+    const newMap = parseCosmeticsControllerText(newText);
+
+    const added = [];
+    const modified = [];
+    const removed = [];
+
+    for (const [key, newItem] of newMap.entries()) {
+        if (!oldMap.has(key)) {
+            added.push(newItem);
+        } else {
+            const oldItem = oldMap.get(key);
+            if (oldItem.name !== newItem.name || oldItem.price !== newItem.price) {
+                modified.push({
+                    id: newItem.id,
+                    oldName: oldItem.name,
+                    newName: newItem.name,
+                    oldPrice: oldItem.price,
+                    newPrice: newItem.price,
+                });
+            }
+        }
+    }
+
+    for (const [key, oldItem] of oldMap.entries()) {
+        if (!newMap.has(key)) {
+            removed.push(oldItem);
+        }
+    }
+
+    return { added, modified, removed, totalOld: oldMap.size, totalNew: newMap.size };
+}
+
+/**
+ * Update the baseline item_names.txt reference and resync upcoming cosmetics.
+ */
+function updateCosmeticsControllerBaseline(newText) {
+    const pathsToUpdate = [
+        path.join(DATA_DIR, 'item_names.txt'),
+        path.join(__dirname, '..', 'item_names.txt'),
+        path.join(__dirname, '..', 'new.txt'),
+    ];
+
+    for (const p of pathsToUpdate) {
+        try {
+            fs.writeFileSync(p, newText, 'utf8');
+        } catch (e) {
+            console.error('[Tracker] Failed to write to', p, e.message);
+        }
+    }
+
+    cachedNameMap = null;
+    loadItemNamesMap(true);
+    syncUpcomingNamesFromMapping();
+}
+
+function getCosmeticsControllerBaselineText() {
+    const possiblePaths = [
+        path.join(DATA_DIR, 'item_names.txt'),
+        path.join(__dirname, '..', 'item_names.txt'),
+        path.join(DATA_DIR, 'new.txt'),
+        path.join(__dirname, '..', 'new.txt'),
+    ];
+
+    for (const p of possiblePaths) {
+        if (fs.existsSync(p)) {
+            try {
+                return fs.readFileSync(p, 'utf8');
+            } catch { }
+        }
+    }
+    return '';
+}
+
 function syncUpcomingNamesFromMapping() {
     if (!fs.existsSync(UPCOMING_COSMETICS)) return;
     const nameMap = loadItemNamesMap(true);
@@ -490,6 +598,9 @@ module.exports = {
     removeUpcomingCosmetics,
     clearUpcomingCosmetics,
     resetBaselines,
+    diffCosmeticsController,
+    updateCosmeticsControllerBaseline,
+    getCosmeticsControllerBaselineText,
     getFormattedPrice,
     getPrice,
     getPriceString,
