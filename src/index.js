@@ -52,7 +52,13 @@ async function main() {
     }
 
     // Sync item display names from reference file on startup
-    syncUpcomingNamesFromMapping();
+    if (typeof syncUpcomingNamesFromMapping === 'function') {
+        try {
+            syncUpcomingNamesFromMapping();
+        } catch (e) {
+            console.warn('[Tracker] Names sync note:', e.message);
+        }
+    }
 
     console.log('\n=== Bot is running! ===');
     console.log('Running initial check...\n');
