@@ -261,13 +261,17 @@ function diffTitleData(newTitleData) {
 
 const ITEM_NAMES_FILE = path.join(DATA_DIR, 'item_names.txt');
 
+let cachedNameMap = null;
+
 /**
- * Load item name mapping from file (supports new.txt or item_names.txt).
+ * Load item name mapping from file (supports item_names.txt or new.txt).
  */
-function loadItemNamesMap() {
+function loadItemNamesMap(forceReload = false) {
+    if (cachedNameMap && !forceReload) return cachedNameMap;
     const map = {};
     const possiblePaths = [
-        ITEM_NAMES_FILE,
+        path.join(DATA_DIR, 'item_names.txt'),
+        path.join(__dirname, '..', 'item_names.txt'),
         path.join(DATA_DIR, 'new.txt'),
         path.join(__dirname, '..', 'new.txt'),
         'C:\\Users\\gebruiker\\Downloads\\new.txt',
@@ -302,7 +306,20 @@ function loadItemNamesMap() {
             }
         }
     }
+    cachedNameMap = map;
     return map;
+}
+
+/**
+ * Get cosmetic DisplayName from mapping or fallback.
+ */
+function getItemDisplayName(itemId, fallbackDisplayName = null) {
+    if (!itemId) return fallbackDisplayName || '';
+    const map = loadItemNamesMap();
+    const mapped = map[itemId.toUpperCase()];
+    if (mapped && mapped !== itemId) return mapped;
+    if (fallbackDisplayName && fallbackDisplayName !== itemId) return fallbackDisplayName;
+    return '';
 }
 
 /**
@@ -310,7 +327,7 @@ function loadItemNamesMap() {
  */
 function syncUpcomingNamesFromMapping() {
     if (!fs.existsSync(UPCOMING_COSMETICS)) return;
-    const nameMap = loadItemNamesMap();
+    const nameMap = loadItemNamesMap(true);
     if (Object.keys(nameMap).length === 0) return;
 
     try {
@@ -468,6 +485,7 @@ module.exports = {
     diffTitleData,
     getUpcomingCosmetics,
     loadItemNamesMap,
+    getItemDisplayName,
     syncUpcomingNamesFromMapping,
     removeUpcomingCosmetics,
     clearUpcomingCosmetics,

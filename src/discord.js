@@ -2,7 +2,7 @@ const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, EmbedBuild
 const fs = require('fs');
 const path = require('path');
 const config = require('./config');
-const { getUpcomingCosmetics, removeUpcomingCosmetics, resetBaselines, clearUpcomingCosmetics, getFormattedPrice, getPrice, getPriceString, getCurrencyName } = require('./tracker');
+const { getUpcomingCosmetics, getItemDisplayName, removeUpcomingCosmetics, resetBaselines, clearUpcomingCosmetics, getFormattedPrice, getPrice, getPriceString, getCurrencyName } = require('./tracker');
 const { getItemCategory } = require('./categories');
 const { purchaseItem } = require('./playfab');
 
@@ -28,8 +28,8 @@ function formatUpcomingCosmeticLine(item) {
     const price = getPrice(item);
     const category = getItemCategory(item.ItemId, price);
     const priceStr = getFormattedPrice(item);
-    const hasName = item.DisplayName && item.DisplayName !== item.ItemId && item.DisplayName.trim() !== '';
-    const nameSuffix = hasName ? ` (${item.DisplayName})` : '';
+    const displayName = getItemDisplayName(item.ItemId, item.DisplayName);
+    const nameSuffix = displayName ? ` (${displayName})` : '';
     return `${item.ItemId} - ${category} - ${priceStr}${nameSuffix}`;
 }
 
