@@ -149,7 +149,7 @@ function diffHierarchyDumps(oldPath, newPath) {
 }
 
 /**
- * Check on startup once, diff, send 1 embed per scene, and archive new -> old.
+ * Check on startup once, diff, send clean embeds per scene (dark sidebar, no emojis), and archive new -> old.
  */
 async function checkHierarchyDumpsOnStartup(client) {
     const { oldPath, newPath } = findDumpFiles();
@@ -197,35 +197,25 @@ async function checkHierarchyDumpsOnStartup(client) {
 
         if (!targetChan) return;
 
-        // 1. Post Main Summary Header Embed
-        const headerEmbed = new EmbedBuilder()
-            .setTitle('🗺️ Gorilla Tag Hierarchy Changes')
-            .setColor(0x3498DB)
-            .setDescription(`Detected map & scene hierarchy changes between updates.\n\n**Total Changes:** \`+${totalAdded} added\` | \`-${totalRemoved} removed\` across **${scenes.size}** scene(s).`)
-            .setTimestamp();
-        await targetChan.send({ embeds: [headerEmbed] });
-
-        // 2. Post 1 Embed per Scene
+        // Post 1 simple Embed per Scene (no emojis, dark sidebar)
         for (const [sceneName, changes] of scenes.entries()) {
             const lines = [];
 
             for (const a of changes.added) {
-                const comp = a.raw.includes('[') ? ' ' + a.raw.substring(a.raw.indexOf('[')) : '';
-                lines.push(`+ ${a.relativePath}${comp}`);
+                const offTag = a.raw.includes('[OFF]') ? ' [OFF]' : '';
+                lines.push(`+ ${a.relativePath}${offTag}`);
             }
 
             for (const r of changes.removed) {
-                const comp = r.raw.includes('[') ? ' ' + r.raw.substring(r.raw.indexOf('[')) : '';
-                lines.push(`- ${r.relativePath}${comp}`);
+                const offTag = r.raw.includes('[OFF]') ? ' [OFF]' : '';
+                lines.push(`- ${r.relativePath}${offTag}`);
             }
 
-            const title = `📍 Scene: ${sceneName} (+${changes.added.length}, -${changes.removed.length})`;
-            const color = changes.added.length > 0 && changes.removed.length === 0 ? 0x2ECC71
-                        : changes.removed.length > 0 && changes.added.length === 0 ? 0xE74C3C
-                        : 0xF1C40F; // mixed
+            const title = `Scene: ${sceneName} (+${changes.added.length}, -${changes.removed.length})`;
+            const darkColor = 0x2B2D31; // Dark / black sidebar
 
-            await sendSceneEmbeds(targetChan, title, lines, color);
-            await new Promise(r => setTimeout(r, 1200));
+            await sendSceneEmbeds(targetChan, title, lines, darkColor);
+            await new Promise(r => setTimeout(r, 1000));
         }
 
         // Archive new -> old so it won't repeat on future restarts
