@@ -2,7 +2,7 @@ const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, EmbedBuild
 const fs = require('fs');
 const path = require('path');
 const config = require('./config');
-const { getUpcomingCosmetics, getItemDisplayName, removeUpcomingCosmetics, resetBaselines, clearUpcomingCosmetics, getFormattedPrice, getPrice, getPriceString, getCurrencyName } = require('./tracker');
+const { getUpcomingCosmetics, getItemDisplayName, removeUpcomingCosmetics, resetBaselines, clearUpcomingCosmetics, diffCosmeticsController, updateCosmeticsControllerBaseline, getCosmeticsControllerBaselineText, getFormattedPrice, getPrice, getPriceString, getCurrencyName } = require('./tracker');
 const { getItemCategory } = require('./categories');
 const { purchaseItem } = require('./playfab');
 
