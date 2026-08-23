@@ -258,6 +258,82 @@ function diffTitleData(newTitleData) {
 
 // ─── Upcoming Cosmetics ─────────────────────────────────────────
 
+
+const ITEM_NAMES_FILE = path.join(DATA_DIR, 'item_names.txt');
+
+/**
+ * Load item name mapping from file (supports new.txt or item_names.txt).
+ */
+function loadItemNamesMap() {
+    const map = {};
+    const possiblePaths = [
+        ITEM_NAMES_FILE,
+        path.join(DATA_DIR, 'new.txt'),
+        path.join(__dirname, '..', 'new.txt'),
+        'C:\\Users\\gebruiker\\Downloads\\new.txt',
+    ];
+
+    for (const p of possiblePaths) {
+        if (fs.existsSync(p)) {
+            try {
+                const content = fs.readFileSync(p, 'utf8');
+                const lines = content.split(/\r?\n/);
+                for (const line of lines) {
+                    const trimmed = line.trim();
+                    if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('#')) continue;
+                    if (trimmed.includes('//')) {
+                        const parts = trimmed.split('//').map(s => s.trim());
+                        if (parts.length >= 2 && parts[0] && parts[1]) {
+                            const id = parts[0];
+                            const name = parts[1];
+                            map[id.toUpperCase()] = name;
+                            if (id.endsWith('.')) {
+                                map[id.slice(0, -1).toUpperCase()] = name;
+                            } else {
+                                map[(id + '.').toUpperCase()] = name;
+                            }
+                        }
+                    }
+                }
+                console.log(`[Tracker] Loaded ${Object.keys(map).length / 2} item name mappings from ${path.basename(p)}.`);
+                break;
+            } catch (e) {
+                console.error('[Tracker] Error loading item names from:', p, e.message);
+            }
+        }
+    }
+    return map;
+}
+
+/**
+ * Sync DisplayNames for all items in upcoming_cosmetics.json from the item names mapping.
+ */
+function syncUpcomingNamesFromMapping() {
+    if (!fs.existsSync(UPCOMING_COSMETICS)) return;
+    const nameMap = loadItemNamesMap();
+    if (Object.keys(nameMap).length === 0) return;
+
+    try {
+        let items = JSON.parse(fs.readFileSync(UPCOMING_COSMETICS, 'utf8'));
+        let updatedCount = 0;
+
+        for (const item of items) {
+            const mappedName = nameMap[(item.ItemId || '').toUpperCase()];
+            if (mappedName && (!item.DisplayName || item.DisplayName === item.ItemId || item.DisplayName.trim() === '')) {
+                item.DisplayName = mappedName;
+                updatedCount++;
+            }
+        }
+
+        if (updatedCount > 0) {
+            fs.writeFileSync(UPCOMING_COSMETICS, JSON.stringify(items, null, 2));
+            console.log(`[Tracker] Updated DisplayNames for ${updatedCount} upcoming cosmetic(s) from item names reference.`);
+        }
+    } catch (e) {
+        console.error('[Tracker] Failed to sync names to upcoming_cosmetics.json:', e.message);
+    }
+}
+
 function appendToUpcomingCosmetics(newItems) {
     if (!newItems || newItems.length === 0) return;
 
@@ -270,8 +346,12 @@ function appendToUpcomingCosmetics(newItems) {
         const existingIds = new Set(existing.map(i => i.ItemId));
         let addedCount = 0;
 
+        const nameMap = loadItemNamesMap();
         for (const item of newItems) {
             if (!existingIds.has(item.ItemId)) {
+                if ((!item.DisplayName || item.DisplayName === item.ItemId) && nameMap[item.ItemId.toUpperCase()]) {
+                    item.DisplayName = nameMap[item.ItemId.toUpperCase()];
+                }
                 existing.push(item);
                 existingIds.add(item.ItemId);
                 addedCount++;
@@ -387,6 +467,8 @@ module.exports = {
     diffCatalog,
     diffTitleData,
     getUpcomingCosmetics,
+    loadItemNamesMap,
+    syncUpcomingNamesFromMapping,
     removeUpcomingCosmetics,
     clearUpcomingCosmetics,
     resetBaselines,

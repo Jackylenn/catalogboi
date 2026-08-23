@@ -237,7 +237,8 @@ async function handlePrefixCommand(message) {
             const price = getPrice(item);
             const category = getItemCategory(item.ItemId, price);
             const priceStr = getFormattedPrice(item);
-            return `${item.ItemId} - ${category} - ${priceStr}`;
+            const name = (item.DisplayName && item.DisplayName !== item.ItemId) ? ` - ${item.DisplayName}` : '';
+            return `${item.ItemId}${name} - ${category} - ${priceStr}`;
         });
 
         const batchSize = 20;
@@ -550,7 +551,8 @@ async function updateListMessage() {
             const price = getPrice(item);
             const category = getItemCategory(item.ItemId, price);
             const priceStr = getFormattedPrice(item);
-            return `${item.ItemId} - ${category} - ${priceStr}`;
+            const name = (item.DisplayName && item.DisplayName !== item.ItemId) ? ` - ${item.DisplayName}` : '';
+            return `${item.ItemId}${name} - ${category} - ${priceStr}`;
         });
         description = lines.join('\n');
     }

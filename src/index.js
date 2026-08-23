@@ -1,7 +1,7 @@
 const config = require('./config');
 const steam = require('./steam');
 const playfab = require('./playfab');
-const { diffCatalog, diffTitleData } = require('./tracker');
+const { diffCatalog, diffTitleData, syncUpcomingNamesFromMapping } = require('./tracker');
 const { initBot, sendChanges, updateCheckStats, updateListMessage, updateStatusMessage, sleep } = require('./discord');
 
 let pollInterval = null;
@@ -50,6 +50,9 @@ async function main() {
         console.error('Failed to start Discord bot:', e.message);
         process.exit(1);
     }
+
+    // Sync item display names from reference file on startup
+    syncUpcomingNamesFromMapping();
 
     console.log('\n=== Bot is running! ===');
     console.log('Running initial check...\n');
