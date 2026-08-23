@@ -23,6 +23,16 @@ const STATUS_MSG_PATH = path.join(__dirname, '..', 'data', 'status_message_id.tx
 
 // ─── Bot Setup ───────────────────────────────────────────────────
 
+
+function formatUpcomingCosmeticLine(item) {
+    const price = getPrice(item);
+    const category = getItemCategory(item.ItemId, price);
+    const priceStr = getFormattedPrice(item);
+    const hasName = item.DisplayName && item.DisplayName !== item.ItemId && item.DisplayName.trim() !== '';
+    const nameSuffix = hasName ? ` (${item.DisplayName})` : '';
+    return `${item.ItemId} - ${category} - ${priceStr}${nameSuffix}`;
+}
+
 async function initBot() {
     const clientOptions = {
         sweepers: {
@@ -233,13 +243,7 @@ async function handlePrefixCommand(message) {
             return;
         }
 
-        const lines = items.map(item => {
-            const price = getPrice(item);
-            const category = getItemCategory(item.ItemId, price);
-            const priceStr = getFormattedPrice(item);
-            const name = (item.DisplayName && item.DisplayName !== item.ItemId) ? ` - ${item.DisplayName}` : '';
-            return `${item.ItemId}${name} - ${category} - ${priceStr}`;
-        });
+        const lines = items.map(formatUpcomingCosmeticLine);
 
         const batchSize = 20;
         for (let i = 0; i < lines.length; i += batchSize) {
@@ -406,12 +410,7 @@ async function handleUpcoming(interaction) {
 
     await interaction.deferReply();
 
-    const lines = items.map(item => {
-        const price = getPrice(item);
-        const category = getItemCategory(item.ItemId, price);
-        const priceStr = getFormattedPrice(item);
-        return `${item.ItemId} - ${category} - ${priceStr}`;
-    });
+    const lines = items.map(formatUpcomingCosmeticLine);
 
     const batchSize = 20;
     for (let i = 0; i < lines.length; i += batchSize) {
@@ -547,13 +546,7 @@ async function updateListMessage() {
     if (items.length === 0) {
         description = '*No upcoming cosmetics tracked yet.*';
     } else {
-        const lines = items.map(item => {
-            const price = getPrice(item);
-            const category = getItemCategory(item.ItemId, price);
-            const priceStr = getFormattedPrice(item);
-            const name = (item.DisplayName && item.DisplayName !== item.ItemId) ? ` - ${item.DisplayName}` : '';
-            return `${item.ItemId}${name} - ${category} - ${priceStr}`;
-        });
+        const lines = items.map(formatUpcomingCosmeticLine);
         description = lines.join('\n');
     }
 
