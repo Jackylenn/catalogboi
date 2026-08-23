@@ -47,7 +47,7 @@ function findDumpFiles() {
 }
 
 /**
- * Parse a hierarchy dump file into a Map of { path -> { raw, name, components, active } }.
+ * Parse a hierarchy dump file into a Map of { fullPath -> { scene, relativePath, raw, depth } }.
  */
 function parseHierarchyDump(filePath) {
     const map = new Map();
@@ -57,13 +57,13 @@ function parseHierarchyDump(filePath) {
         const text = fs.readFileSync(filePath, 'utf8');
         const lines = text.split(/\r?\n/);
 
-        const pathStack = []; // stores [depth] = name
+        let currentScene = 'General';
+        const pathStack = [];
 
         for (let i = 0; i < lines.length; i++) {
             const rawLine = lines[i];
             if (!rawLine || isTrashOrCombinedMesh(rawLine)) continue;
 
-            // Calculate depth (indent = 2 spaces per level)
             const match = rawLine.match(/^(\s*)/);
             const spaces = match ? match[1].length : 0;
             const depth = Math.floor(spaces / 2);
@@ -71,7 +71,14 @@ function parseHierarchyDump(filePath) {
             const trimmed = rawLine.trim();
             if (!trimmed) continue;
 
-            // Extract gameobject name (before [OFF] or [ComponentList])
+            if (depth === 0) {
+                // Root scene header (e.g. Forest, Cave, DontDestroyOnLoad)
+                currentScene = trimmed;
+                pathStack.length = 0;
+                pathStack[0] = currentScene;
+                continue;
+            }
+
             let goName = trimmed;
             const bracketIdx = goName.indexOf('[');
             if (bracketIdx !== -1) {
@@ -79,13 +86,16 @@ function parseHierarchyDump(filePath) {
             }
 
             pathStack[depth] = goName;
-            pathStack.length = depth + 1; // truncate deeper levels
+            pathStack.length = depth + 1;
 
             const fullPath = pathStack.join(' / ');
+            const relativePath = pathStack.slice(1).join(' / ');
+
             map.set(fullPath, {
+                scene: currentScene,
+                relativePath,
+                fullPath,
                 raw: trimmed,
-                name: goName,
-                path: fullPath,
                 depth,
             });
         }
@@ -97,7 +107,7 @@ function parseHierarchyDump(filePath) {
 }
 
 /**
- * Diff old vs new hierarchy dumps and return added, removed, and modified items.
+ * Diff old vs new hierarchy dumps and group changes per scene.
  */
 function diffHierarchyDumps(oldPath, newPath) {
     console.log(`[Hierarchy] Diffing dumps: Old (${path.basename(oldPath)}) vs New (${path.basename(newPath)})...`);
@@ -105,34 +115,41 @@ function diffHierarchyDumps(oldPath, newPath) {
     const oldMap = parseHierarchyDump(oldPath);
     const newMap = parseHierarchyDump(newPath);
 
-    const added = [];
-    const removed = [];
-    const modified = [];
+    // sceneName -> { added: [], removed: [] }
+    const sceneMap = new Map();
 
-    // Find added & modified
+    let totalAdded = 0;
+    let totalRemoved = 0;
+
+    // Find added
     for (const [fullPath, info] of newMap.entries()) {
         if (!oldMap.has(fullPath)) {
-            added.push(info);
-        } else {
-            const oldInfo = oldMap.get(fullPath);
-            if (oldInfo.raw !== info.raw) {
-                modified.push({ fullPath, oldRaw: oldInfo.raw, newRaw: info.raw });
-            }
+            if (!sceneMap.has(info.scene)) sceneMap.set(info.scene, { added: [], removed: [] });
+            sceneMap.get(info.scene).added.push(info);
+            totalAdded++;
         }
     }
 
     // Find removed
     for (const [fullPath, info] of oldMap.entries()) {
         if (!newMap.has(fullPath)) {
-            removed.push(info);
+            if (!sceneMap.has(info.scene)) sceneMap.set(info.scene, { added: [], removed: [] });
+            sceneMap.get(info.scene).removed.push(info);
+            totalRemoved++;
         }
     }
 
-    return { added, removed, modified, totalOld: oldMap.size, totalNew: newMap.size };
+    return {
+        scenes: sceneMap,
+        totalAdded,
+        totalRemoved,
+        totalOld: oldMap.size,
+        totalNew: newMap.size,
+    };
 }
 
 /**
- * Check on startup once, diff, send to Discord, and archive new -> old.
+ * Check on startup once, diff, send 1 embed per scene, and archive new -> old.
  */
 async function checkHierarchyDumpsOnStartup(client) {
     const { oldPath, newPath } = findDumpFiles();
@@ -150,12 +167,11 @@ async function checkHierarchyDumpsOnStartup(client) {
     }
 
     try {
-        const diff = diffHierarchyDumps(oldPath, newPath);
-        const { added, removed, modified } = diff;
+        const { scenes, totalAdded, totalRemoved } = diffHierarchyDumps(oldPath, newPath);
 
-        console.log(`[Hierarchy] Diff results: +${added.length} added, -${removed.length} removed, ~${modified.length} modified.`);
+        console.log(`[Hierarchy] Diff results: +${totalAdded} added, -${totalRemoved} removed across ${scenes.size} scene(s).`);
 
-        if (added.length === 0 && removed.length === 0 && modified.length === 0) {
+        if (totalAdded === 0 && totalRemoved === 0) {
             console.log('[Hierarchy] No hierarchy differences detected.');
             try {
                 fs.copyFileSync(newPath, oldPath);
@@ -181,33 +197,38 @@ async function checkHierarchyDumpsOnStartup(client) {
 
         if (!targetChan) return;
 
-        // 1. Post Header Embed
+        // 1. Post Main Summary Header Embed
         const headerEmbed = new EmbedBuilder()
-            .setTitle('🗺️ Gorilla Tag Hierarchy Update Detected!')
+            .setTitle('🗺️ Gorilla Tag Hierarchy Changes')
             .setColor(0x3498DB)
-            .setDescription(`Detected map & scene hierarchy changes between updates.\n**Additions:** \`+${added.length}\` | **Removals:** \`-${removed.length}\` | **Modified:** \`~${modified.length}\``)
+            .setDescription(`Detected map & scene hierarchy changes between updates.\n\n**Total Changes:** \`+${totalAdded} added\` | \`-${totalRemoved} removed\` across **${scenes.size}** scene(s).`)
             .setTimestamp();
         await targetChan.send({ embeds: [headerEmbed] });
 
-        // 2. Post Additions in Batches
-        if (added.length > 0) {
-            const addedLines = added.map(a => `➕ \`${a.path}\` ${a.raw.includes('[') ? a.raw.substring(a.raw.indexOf('[')) : ''}`);
-            await sendBatchedEmbeds(targetChan, '🆕 New GameObjects Added', addedLines, 0x2ECC71);
+        // 2. Post 1 Embed per Scene
+        for (const [sceneName, changes] of scenes.entries()) {
+            const lines = [];
+
+            for (const a of changes.added) {
+                const comp = a.raw.includes('[') ? ' ' + a.raw.substring(a.raw.indexOf('[')) : '';
+                lines.push(`+ ${a.relativePath}${comp}`);
+            }
+
+            for (const r of changes.removed) {
+                const comp = r.raw.includes('[') ? ' ' + r.raw.substring(r.raw.indexOf('[')) : '';
+                lines.push(`- ${r.relativePath}${comp}`);
+            }
+
+            const title = `📍 Scene: ${sceneName} (+${changes.added.length}, -${changes.removed.length})`;
+            const color = changes.added.length > 0 && changes.removed.length === 0 ? 0x2ECC71
+                        : changes.removed.length > 0 && changes.added.length === 0 ? 0xE74C3C
+                        : 0xF1C40F; // mixed
+
+            await sendSceneEmbeds(targetChan, title, lines, color);
+            await new Promise(r => setTimeout(r, 1200));
         }
 
-        // 3. Post Removals in Batches
-        if (removed.length > 0) {
-            const removedLines = removed.map(r => `➖ \`${r.path}\``);
-            await sendBatchedEmbeds(targetChan, '🗑️ GameObjects Removed', removedLines, 0xE74C3C);
-        }
-
-        // 4. Post Modified in Batches
-        if (modified.length > 0) {
-            const modLines = modified.map(m => `🔄 \`${m.fullPath}\`\n  Old: \`${m.oldRaw}\`\n  New: \`${m.newRaw}\``);
-            await sendBatchedEmbeds(targetChan, '✏️ GameObjects Modified', modLines, 0xF1C40F);
-        }
-
-        // Archive new -> old so it is not re-posted on next restart
+        // Archive new -> old so it won't repeat on future restarts
         try {
             fs.copyFileSync(newPath, oldPath);
             fs.unlinkSync(newPath);
@@ -221,21 +242,39 @@ async function checkHierarchyDumpsOnStartup(client) {
     }
 }
 
-async function sendBatchedEmbeds(channel, title, lines, color, batchSize = 15) {
-    for (let i = 0; i < lines.length; i += batchSize) {
-        const batch = lines.slice(i, i + batchSize);
-        let desc = batch.join('\n\n');
-        if (desc.length > 4000) {
-            desc = desc.substring(0, 3950) + '\n... (truncated)';
+/**
+ * Format scene diff lines into 1 embed if it fits, or chunk if too big.
+ */
+async function sendSceneEmbeds(channel, title, lines, color) {
+    const maxCharsPerBlock = 3800;
+    const blocks = [];
+    let currentBlock = [];
+    let currentLen = 0;
+
+    for (const line of lines) {
+        if (currentLen + line.length + 1 > maxCharsPerBlock && currentBlock.length > 0) {
+            blocks.push(currentBlock);
+            currentBlock = [];
+            currentLen = 0;
         }
+        currentBlock.push(line);
+        currentLen += line.length + 1;
+    }
+    if (currentBlock.length > 0) blocks.push(currentBlock);
+
+    for (let i = 0; i < blocks.length; i++) {
+        const blockTitle = blocks.length === 1 ? title : `${title} (${i + 1}/${blocks.length})`;
+        const diffBody = '```diff\n' + blocks[i].join('\n') + '\n```';
 
         const embed = new EmbedBuilder()
-            .setTitle(i === 0 ? title : `${title} (cont.)`)
-            .setDescription(desc)
+            .setTitle(blockTitle)
+            .setDescription(diffBody)
             .setColor(color);
 
         await channel.send({ embeds: [embed] });
-        await new Promise(r => setTimeout(r, 1200));
+        if (i + 1 < blocks.length) {
+            await new Promise(r => setTimeout(r, 1000));
+        }
     }
 }
 
