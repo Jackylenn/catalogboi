@@ -60,6 +60,8 @@ async function main() {
         }
     }
 
+    try { await checkHierarchyDumpsOnStartup(getClient()); } catch (e) { console.warn('[Hierarchy] Check error:', e.message); }
+
     console.log('\n=== Bot is running! ===');
     console.log('Running initial check...\n');
 

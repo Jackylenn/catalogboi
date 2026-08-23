@@ -894,4 +894,5 @@ function updateCheckStats(itemCount) {
     lastCheckItemCount = itemCount;
 }
 
-module.exports = { initBot, sendChanges, updateCheckStats, updateListMessage, updateStatusMessage, sleep };
+function getClient() { return client; }
+module.exports = { initBot, sendChanges, updateCheckStats, updateListMessage, updateStatusMessage, sleep, getClient };

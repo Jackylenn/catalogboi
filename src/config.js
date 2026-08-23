@@ -17,6 +17,7 @@ module.exports = {
         titleDataChannelId: process.env.TITLE_DATA_CHANNEL_ID,
         listChannelId: process.env.LIST_CHANNEL_ID,
         statusChannelId: process.env.STATUS_CHANNEL_ID,
+        hierarchyChannelId: process.env.HIERARCHY_CHANNEL_ID || process.env.HIARCHY_CHANNEL_ID,
     },
     steam: {
         username: process.env.STEAM_USERNAME,
