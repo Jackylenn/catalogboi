@@ -210,24 +210,41 @@ function parseTitleDataInput(inputJson) {
     return parsed;
 }
 
+
+function loadExistingTitleDataBaseline() {
+    const candidates = [
+        path.join(DATA_DIR, 'title_data_baseline.json'),
+        path.join(DATA_DIR, 'TitleDataCache.json'),
+        path.join(DATA_DIR, 'titledataold.json'),
+        path.join(DATA_DIR, 'titledata_old.json'),
+        path.join(DATA_DIR, 'title_data.json'),
+        path.join(__dirname, '..', 'TitleDataCache.json'),
+        path.join(__dirname, '..', 'title_data_baseline.json'),
+    ];
+
+    for (const c of candidates) {
+        if (fs.existsSync(c)) {
+            try {
+                const raw = fs.readFileSync(c, 'utf8');
+                const parsed = parseTitleDataInput(raw);
+                if (parsed && Object.keys(parsed).length > 0) {
+                    return parsed;
+                }
+            } catch (e) {
+                console.error('[Tracker] Failed to read candidate baseline:', c, e.message);
+            }
+        }
+    }
+    return null;
+}
+
 function diffTitleData(rawTitleData) {
     const newTitleData = parseTitleDataInput(rawTitleData);
     const changes = [];
-    let isFirstRun = false;
 
-    let oldTitleData = null;
-    if (fs.existsSync(TITLE_DATA_BASELINE)) {
-        try {
-            oldTitleData = JSON.parse(fs.readFileSync(TITLE_DATA_BASELINE, 'utf8'));
-        } catch (e) {
-            console.error('[Tracker] Failed to parse title data baseline:', e.message);
-            isFirstRun = true;
-        }
-    } else {
-        isFirstRun = true;
-    }
+    const oldTitleData = loadExistingTitleDataBaseline();
 
-    if (oldTitleData && !isFirstRun) {
+    if (oldTitleData) {
         const oldKeys = new Set(Object.keys(oldTitleData));
         const newKeys = new Set(Object.keys(newTitleData));
 
@@ -264,20 +281,21 @@ function diffTitleData(rawTitleData) {
                 });
             }
         }
-    } else if (isFirstRun) {
-        console.log('[Tracker] First run - saving title data baseline.');
+    } else {
+        console.log('[Tracker] No prior title data baseline found - saving current as baseline.');
     }
 
-    // Save new baseline
+    // Auto-update baseline immediately so it doesn't accidentally run twice
     try {
         fs.writeFileSync(TITLE_DATA_BASELINE, JSON.stringify(newTitleData, null, 2));
-        console.log(`[Tracker] Title data baseline saved (${Object.keys(newTitleData).length} keys).`);
+        console.log(`[Tracker] Title data baseline auto-updated (${Object.keys(newTitleData).length} keys).`);
     } catch (e) {
         console.error('[Tracker] Failed to save title data baseline:', e.message);
     }
 
     return changes;
 }
+
 
 // ─── Upcoming Cosmetics ─────────────────────────────────────────
 
