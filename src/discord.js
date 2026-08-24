@@ -2,7 +2,7 @@ const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, EmbedBuild
 const fs = require('fs');
 const path = require('path');
 const config = require('./config');
-const { getUpcomingCosmetics, getItemDisplayName, removeUpcomingCosmetics, resetBaselines, clearUpcomingCosmetics, diffCosmeticsController, updateCosmeticsControllerBaseline, getCosmeticsControllerBaselineText, getFormattedPrice, getPrice, getPriceString, getCurrencyName } = require('./tracker');
+const { getUpcomingCosmetics, getItemDisplayName, removeUpcomingCosmetics, resetBaselines, clearUpcomingCosmetics, diffCosmeticsController, updateCosmeticsControllerBaseline, getCosmeticsControllerBaselineText, diffTitleData, parseTitleDataInput, getFormattedPrice, getPrice, getPriceString, getCurrencyName } = require('./tracker');
 const { getItemCategory } = require('./categories');
 const { purchaseItem } = require('./playfab');
 
@@ -121,6 +121,14 @@ async function registerCommands() {
             .setName('clearlist')
             .setDescription('Clear the entire upcoming cosmetics list'),
         new SlashCommandBuilder()
+            .setName('checktitledata')
+            .setDescription('Upload a TitleDataCache.json dump to compare and update Title Data baseline')
+            .addAttachmentOption(opt =>
+                opt.setName('file')
+                    .setDescription('The TitleDataCache.json or TitleData .json file')
+                    .setRequired(true)
+            ),
+        new SlashCommandBuilder()
             .setName('checkcosmeticscontroller')
             .setDescription('Upload a new CosmeticsController dump to diff and update item names/prices')
             .addAttachmentOption(opt =>
@@ -196,6 +204,8 @@ async function handleInteraction(interaction) {
         await handleStatus(interaction);
     } else if (interaction.commandName === 'clearlist') {
         await handleClearList(interaction);
+    } else if (interaction.commandName === 'checktitledata') {
+        await handleCheckTitleData(interaction);
     } else if (interaction.commandName === 'checkcosmeticscontroller') {
         await handleCheckCosmeticsController(interaction);
     } else if (interaction.commandName === 'remove') {
@@ -221,6 +231,41 @@ async function handlePrefixCommand(message) {
         await updateListMessage();
         await updateStatusMessage();
         console.log('[Discord] ?clearlist executed by', message.author.tag);
+    } else if (cmd === 'checktitledata') {
+        const attachment = message.attachments.first();
+        if (!attachment) {
+            await message.reply('⚠️ Please attach a `TitleDataCache.json` or `.json` file with `?checktitledata`.');
+            return;
+        }
+
+        try {
+            const resp = await fetch(attachment.url);
+            const text = await resp.text();
+            const parsed = JSON.parse(text);
+
+            const changes = diffTitleData(parsed);
+            const targetChan = titleDataChannel || catalogChannel || message.channel;
+
+            if (changes.length === 0) {
+                const embed = new EmbedBuilder()
+                    .setTitle('Title Data: No Changes Detected')
+                    .setColor(0x2B2D31)
+                    .setDescription('*The uploaded Title Data is identical to the current baseline.*');
+                await message.reply({ embeds: [embed] });
+                return;
+            }
+
+            await sendChanges(changes);
+
+            const replyEmbed = new EmbedBuilder()
+                .setTitle('Title Data Check Complete')
+                .setColor(0x2B2D31)
+                .setDescription(`Detected and sent **${changes.length}** title data change(s) to <#${targetChan.id}>.\nBaseline saved.`);
+
+            await message.reply({ embeds: [replyEmbed] });
+        } catch (err) {
+            await message.reply(`❌ Error checking Title Data: ${err.message}`);
+        }
     } else if (cmd === 'checkcosmeticscontroller') {
         const attachment = message.attachments.first();
         if (!attachment) {
@@ -361,6 +406,46 @@ async function handlePrefixCommand(message) {
 
 // ─── Slash Command Handlers ──────────────────────────────────────
 
+
+
+async function handleCheckTitleData(interaction) {
+    const attachment = interaction.options.getAttachment('file');
+    if (!attachment) {
+        await interaction.reply({ content: '⚠️ Please attach a valid JSON file.', ephemeral: true });
+        return;
+    }
+
+    await interaction.deferReply();
+
+    try {
+        const resp = await fetch(attachment.url);
+        const text = await resp.text();
+        const parsed = JSON.parse(text);
+
+        const changes = diffTitleData(parsed);
+        const targetChan = titleDataChannel || catalogChannel || interaction.channel;
+
+        if (changes.length === 0) {
+            const embed = new EmbedBuilder()
+                .setTitle('Title Data: No Changes Detected')
+                .setColor(0x2B2D31)
+                .setDescription('*The uploaded Title Data is identical to the current baseline.*');
+            await interaction.editReply({ embeds: [embed] });
+            return;
+        }
+
+        await sendChanges(changes);
+
+        const replyEmbed = new EmbedBuilder()
+            .setTitle('Title Data Check Complete')
+            .setColor(0x2B2D31)
+            .setDescription(`Detected and sent **${changes.length}** title data change(s) to <#${targetChan.id}>.\n\nBaseline saved.`);
+
+        await interaction.editReply({ embeds: [replyEmbed] });
+    } catch (err) {
+        await interaction.editReply({ content: `❌ Error processing Title Data file: ${err.message}` });
+    }
+}
 
 async function handleCheckCosmeticsController(interaction) {
     const attachment = interaction.options.getAttachment('file');
@@ -773,7 +858,7 @@ function saveListMessageId(id) {
 
 // ─── Send Embeds with Rate Limit Handling ────────────────────────
 
-async function sendToSpecificChannel(targetChannel, embed) {
+async function sendToSpecificChannel(targetChannel, embed, files = []) {
     if (!targetChannel) {
         return;
     }
@@ -783,7 +868,9 @@ async function sendToSpecificChannel(targetChannel, embed) {
 
     while (retries < maxRetries) {
         try {
-            await targetChannel.send({ embeds: [embed] });
+            const payload = { embeds: [embed] };
+            if (files && files.length > 0) payload.files = files;
+            await targetChannel.send(payload);
             return;
         } catch (err) {
             if (err.status === 429) {
@@ -837,18 +924,27 @@ async function sendChanges(changes) {
                 targetChannel = priceChangesChannel || catalogChannel;
                 hadCatalogChanges = true;
                 break;
-            case 'title_data_new':
-                embed = buildTitleDataEmbed('New title data key', change.key, null, change.newValue);
-                targetChannel = titleDataChannel;
-                break;
-            case 'title_data_removed':
-                embed = buildTitleDataEmbed('Title data key removed', change.key, change.oldValue, null);
-                targetChannel = titleDataChannel;
-                break;
-            case 'title_data_changed':
-                embed = buildTitleDataEmbed('Title data value changed', change.key, change.oldValue, change.newValue);
-                targetChannel = titleDataChannel;
-                break;
+            case 'title_data_new': {
+                const { embed: tdEmbed, files: tdFiles } = buildTitleDataEmbed('New title data key', change.key, null, change.newValue);
+                targetChannel = titleDataChannel || catalogChannel;
+                await sendToSpecificChannel(targetChannel, tdEmbed, tdFiles);
+                await sleep(1200);
+                continue;
+            }
+            case 'title_data_removed': {
+                const { embed: tdEmbed, files: tdFiles } = buildTitleDataEmbed('Title data key removed', change.key, change.oldValue, null);
+                targetChannel = titleDataChannel || catalogChannel;
+                await sendToSpecificChannel(targetChannel, tdEmbed, tdFiles);
+                await sleep(1200);
+                continue;
+            }
+            case 'title_data_changed': {
+                const { embed: tdEmbed, files: tdFiles } = buildTitleDataEmbed('Title data value changed', change.key, change.oldValue, change.newValue);
+                targetChannel = titleDataChannel || catalogChannel;
+                await sendToSpecificChannel(targetChannel, tdEmbed, tdFiles);
+                await sleep(1200);
+                continue;
+            }
             default:
                 continue;
         }
@@ -977,6 +1073,20 @@ function buildTitleDataEmbed(title, key, oldValue, newValue) {
         .setDescription(`Key: \`${key}\``)
         .setColor(color);
 
+    const files = [];
+
+    // If either value is large (> 950 chars), attach full file
+    if ((oldValue && oldValue.length > 950) || (newValue && newValue.length > 950)) {
+        let fileContent = `=== TITLE DATA CHANGE ===\nKey: ${key}\nType: ${title}\n\n`;
+        if (oldValue) fileContent += `=== OLD VALUE ===\n${oldValue}\n\n`;
+        if (newValue) fileContent += `=== NEW VALUE ===\n${newValue}\n\n`;
+
+        files.push({
+            attachment: Buffer.from(fileContent, 'utf8'),
+            name: `${key}_change.txt`,
+        });
+    }
+
     if (oldValue !== null && oldValue !== undefined && newValue !== null && newValue !== undefined) {
         embed.addFields(
             { name: 'Old value', value: prettyFormat(oldValue), inline: false },
@@ -988,7 +1098,11 @@ function buildTitleDataEmbed(title, key, oldValue, newValue) {
         embed.addFields({ name: 'Old value', value: prettyFormat(oldValue), inline: false });
     }
 
-    return embed;
+    if (files.length > 0) {
+        embed.setFooter({ text: 'Full content attached as a file due to length.' });
+    }
+
+    return { embed, files };
 }
 
 function prettyFormat(input) {

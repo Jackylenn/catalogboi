@@ -188,7 +188,30 @@ function diffCatalog(newCatalog) {
 
 // ─── Title Data Diff ─────────────────────────────────────────────
 
-function diffTitleData(newTitleData) {
+
+function parseTitleDataInput(inputJson) {
+    if (!inputJson) return {};
+    let parsed = inputJson;
+    if (typeof inputJson === 'string') {
+        try {
+            parsed = JSON.parse(inputJson);
+        } catch {
+            return {};
+        }
+    }
+
+    if (parsed.TitleData && typeof parsed.TitleData === 'object') {
+        const langKey = parsed.TitleData.en ? 'en' : Object.keys(parsed.TitleData)[0];
+        if (langKey && parsed.TitleData[langKey]) {
+            return parsed.TitleData[langKey];
+        }
+    }
+
+    return parsed;
+}
+
+function diffTitleData(rawTitleData) {
+    const newTitleData = parseTitleDataInput(rawTitleData);
     const changes = [];
     let isFirstRun = false;
 
@@ -601,6 +624,7 @@ module.exports = {
     diffCosmeticsController,
     updateCosmeticsControllerBaseline,
     getCosmeticsControllerBaselineText,
+    parseTitleDataInput,
     getFormattedPrice,
     getPrice,
     getPriceString,
