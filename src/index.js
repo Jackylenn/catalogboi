@@ -4,9 +4,11 @@ const playfab = require('./playfab');
 const { diffCatalog, diffTitleData, syncUpcomingNamesFromMapping } = require('./tracker');
 const { initBot, sendChanges, updateCheckStats, updateListMessage, updateStatusMessage, sleep, getClient } = require('./discord');
 const { checkHierarchyDumpsOnStartup } = require('./hierarchy');
+const { checkShopify } = require('./shopify');
 
 let pollInterval = null;
 let statusInterval = null;
+let shopifyInterval = null;
 let isChecking = false;
 
 async function main() {
@@ -78,10 +80,28 @@ async function main() {
         await runCheck();
     }, config.pollIntervalMs);
 
+    // Initial Shopify Merch check
+    try {
+        await checkShopify(getClient());
+    } catch (e) {
+        console.warn('[Shopify] Initial check error:', e.message);
+    }
+
     // Schedule recurring 60s heartbeat / status message updates
     statusInterval = setInterval(async () => {
         await updateStatusMessage();
     }, 60 * 1000);
+
+    // Schedule recurring 60s Shopify Merch store checks
+    const shopifyDelay = (config.shopify?.pollIntervalSeconds || 60) * 1000;
+    console.log(`[Shopify] Scheduled store check every ${shopifyDelay / 1000}s`);
+    shopifyInterval = setInterval(async () => {
+        try {
+            await checkShopify(getClient());
+        } catch (e) {
+            console.error('[Shopify] Periodic check error:', e.message);
+        }
+    }, shopifyDelay);
 }
 
 async function runCheck() {
@@ -169,6 +189,7 @@ process.on('SIGINT', () => {
     console.log('\nShutting down...');
     if (pollInterval) clearInterval(pollInterval);
     if (statusInterval) clearInterval(statusInterval);
+    if (shopifyInterval) clearInterval(shopifyInterval);
     process.exit(0);
 });
 

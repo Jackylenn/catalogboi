@@ -19,6 +19,7 @@ module.exports = {
         statusChannelId: process.env.STATUS_CHANNEL_ID,
         hierarchyChannelId: process.env.HIERARCHY_CHANNEL_ID || process.env.HIARCHY_CHANNEL_ID,
         cosmeticsControllerChannelId: process.env.COSMETICS_CONTROLLER_CHANNEL_ID || process.env.COSMETIC_CONTROLLER_CHANNEL_ID,
+        shopifyChannelId: process.env.SHOPIFY_CHANNEL_ID || process.env.STORE_CHANNEL_ID || process.env.MERCH_CHANNEL_ID,
     },
     steam: {
         username: process.env.STEAM_USERNAME,
@@ -27,6 +28,11 @@ module.exports = {
     },
     playfab: {
         titleId: process.env.PLAYFAB_TITLE_ID || '63FDD',
+    },
+    shopify: {
+        domain: process.env.SHOPIFY_DOMAIN || 'another-axiom-x-juniper.myshopify.com',
+        storefrontToken: process.env.SHOPIFY_STOREFRONT_TOKEN || '5db8864a0aebe3ff62a60db93e8491e1',
+        pollIntervalSeconds: parseInt(process.env.SHOPIFY_POLL_INTERVAL_SECONDS || '60'),
     },
     pollIntervalSeconds: intervalSeconds,
     pollIntervalMs: Math.round(intervalSeconds * 1000),

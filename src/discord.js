@@ -4,6 +4,7 @@ const path = require('path');
 const config = require('./config');
 const { getUpcomingCosmetics, getItemDisplayName, removeUpcomingCosmetics, resetBaselines, clearUpcomingCosmetics, diffCosmeticsController, updateCosmeticsControllerBaseline, getCosmeticsControllerBaselineText, diffTitleData, parseTitleDataInput, getFormattedPrice, getPrice, getPriceString, getCurrencyName } = require('./tracker');
 const { getItemCategory } = require('./categories');
+const { getSavedProducts, getSavedCollections, checkShopify, fetchShopifyStoreData, STORE_DOMAIN } = require('./shopify');
 const { purchaseItem } = require('./playfab');
 
 let client = null;
@@ -14,6 +15,7 @@ let titleDataChannel = null;
 let listChannel = null;
 let statusChannel = null;
 let cosmeticsControllerChannel = null;
+let shopifyChannel = null;
 let startTime = Date.now();
 let lastCheckTime = null;
 let lastCheckItemCount = 0;
@@ -121,6 +123,12 @@ async function registerCommands() {
             .setName('clearlist')
             .setDescription('Clear the entire upcoming cosmetics list'),
         new SlashCommandBuilder()
+            .setName('shopify')
+            .setDescription('View current Gorilla Tag merch store products & collections'),
+        new SlashCommandBuilder()
+            .setName('checkshopify')
+            .setDescription('Force an immediate scan of the Shopify merch store for updates'),
+        new SlashCommandBuilder()
             .setName('checktitledata')
             .setDescription('Upload a TitleDataCache.json dump to compare and update Title Data baseline')
             .addAttachmentOption(opt =>
@@ -204,6 +212,10 @@ async function handleInteraction(interaction) {
         await handleStatus(interaction);
     } else if (interaction.commandName === 'clearlist') {
         await handleClearList(interaction);
+    } else if (interaction.commandName === 'shopify') {
+        await handleShopify(interaction);
+    } else if (interaction.commandName === 'checkshopify') {
+        await handleCheckShopify(interaction);
     } else if (interaction.commandName === 'checktitledata') {
         await handleCheckTitleData(interaction);
     } else if (interaction.commandName === 'checkcosmeticscontroller') {
@@ -231,6 +243,42 @@ async function handlePrefixCommand(message) {
         await updateListMessage();
         await updateStatusMessage();
         console.log('[Discord] ?clearlist executed by', message.author.tag);
+    } else if (cmd === 'shopify') {
+        const products = getSavedProducts();
+        const collections = getSavedCollections();
+
+        const embed = new EmbedBuilder()
+            .setTitle('Gorilla Tag Merch Store')
+            .setURL(`https://${STORE_DOMAIN}`)
+            .setColor(0x2ECC71)
+            .setDescription(`Tracking **${products.length}** products across **${collections.length}** collections on \`${STORE_DOMAIN}\`.`)
+            .addFields(
+                { name: 'Store Link', value: `[Visit Store](https://${STORE_DOMAIN})`, inline: true },
+                { name: 'Products Tracked', value: `${products.length}`, inline: true },
+                { name: 'Collections Tracked', value: `${collections.length}`, inline: true },
+            );
+
+        if (products.length > 0) {
+            const sample = products.slice(0, 5).map(p => `• **[${p.title}](https://${STORE_DOMAIN}/products/${p.handle})**`).join('\n');
+            embed.addFields({ name: 'Recent Products', value: sample, inline: false });
+        }
+
+        await message.reply({ embeds: [embed] });
+    } else if (cmd === 'checkshopify') {
+        const replyMsg = await message.reply('Scanning Shopify merch store for updates...');
+        try {
+            const changes = await checkShopify(client);
+            const targetChan = shopifyChannel || newItemsChannel || catalogChannel || message.channel;
+
+            const embed = new EmbedBuilder()
+                .setTitle('Shopify Check Complete')
+                .setColor(0x2B2D31)
+                .setDescription(`Scan complete. Found **${changes.length}** change(s).\nDestination: <#${targetChan.id}>`);
+
+            await replyMsg.edit({ content: '', embeds: [embed] });
+        } catch (e) {
+            await replyMsg.edit(`❌ Error checking Shopify: ${e.message}`);
+        }
     } else if (cmd === 'checktitledata') {
         const attachment = message.attachments.first();
         if (!attachment) {
@@ -407,6 +455,47 @@ async function handlePrefixCommand(message) {
 // ─── Slash Command Handlers ──────────────────────────────────────
 
 
+
+
+async function handleShopify(interaction) {
+    const products = getSavedProducts();
+    const collections = getSavedCollections();
+
+    const embed = new EmbedBuilder()
+        .setTitle('Gorilla Tag Merch Store')
+        .setURL(`https://${STORE_DOMAIN}`)
+        .setColor(0x2ECC71)
+        .setDescription(`Tracking **${products.length}** products across **${collections.length}** collections on \`${STORE_DOMAIN}\`.`)
+        .addFields(
+            { name: 'Store Link', value: `[Visit Store](https://${STORE_DOMAIN})`, inline: true },
+            { name: 'Products Tracked', value: `${products.length}`, inline: true },
+            { name: 'Collections Tracked', value: `${collections.length}`, inline: true },
+        );
+
+    if (products.length > 0) {
+        const sample = products.slice(0, 5).map(p => `• **[${p.title}](https://${STORE_DOMAIN}/products/${p.handle})**`).join('\n');
+        embed.addFields({ name: 'Recent Products', value: sample, inline: false });
+    }
+
+    await interaction.reply({ embeds: [embed] });
+}
+
+async function handleCheckShopify(interaction) {
+    await interaction.deferReply();
+    try {
+        const changes = await checkShopify(client);
+        const targetChan = shopifyChannel || newItemsChannel || catalogChannel || interaction.channel;
+
+        const embed = new EmbedBuilder()
+            .setTitle('Shopify Check Complete')
+            .setColor(0x2B2D31)
+            .setDescription(`Scan complete. Found **${changes.length}** change(s).\nDestination: <#${targetChan.id}>`);
+
+        await interaction.editReply({ embeds: [embed] });
+    } catch (e) {
+        await interaction.editReply({ content: `❌ Error checking Shopify store: ${e.message}` });
+    }
+}
 
 async function handleCheckTitleData(interaction) {
     const attachment = interaction.options.getAttachment('file');
