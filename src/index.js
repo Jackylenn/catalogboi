@@ -8,7 +8,6 @@ const { checkShopify } = require('./shopify');
 
 let pollInterval = null;
 let statusInterval = null;
-let shopifyInterval = null;
 let isChecking = false;
 
 async function main() {
@@ -54,7 +53,7 @@ async function main() {
         process.exit(1);
     }
 
-    // Sync item display names from reference file on startup
+    // Startup Only: Sync item display names from reference mapping
     if (typeof syncUpcomingNamesFromMapping === 'function') {
         try {
             syncUpcomingNamesFromMapping();
@@ -63,45 +62,32 @@ async function main() {
         }
     }
 
-    try { await checkHierarchyDumpsOnStartup(getClient()); } catch (e) { console.warn('[Hierarchy] Check error:', e.message); }
+    // Startup Only: Check & diff hierarchy dump files once
+    try {
+        await checkHierarchyDumpsOnStartup(getClient());
+    } catch (e) {
+        console.warn('[Hierarchy] Check error:', e.message);
+    }
 
     console.log('\n=== Bot is running! ===');
     console.log('Running initial check...\n');
 
-    // Run first check immediately
+    // Run first check immediately (Catalog, Title Data, Shopify)
     await runCheck();
 
     // Ensure list & status channel messages are initialized
     await updateListMessage();
     await updateStatusMessage();
 
-    // Schedule recurring catalog checks
+    // Schedule recurring checks for everything (Catalog, Title Data, Shopify)
     pollInterval = setInterval(async () => {
         await runCheck();
     }, config.pollIntervalMs);
-
-    // Initial Shopify Merch check
-    try {
-        await checkShopify(getClient());
-    } catch (e) {
-        console.warn('[Shopify] Initial check error:', e.message);
-    }
 
     // Schedule recurring 60s heartbeat / status message updates
     statusInterval = setInterval(async () => {
         await updateStatusMessage();
     }, 60 * 1000);
-
-    // Schedule recurring 60s Shopify Merch store checks
-    const shopifyDelay = (config.shopify?.pollIntervalSeconds || 60) * 1000;
-    console.log(`[Shopify] Scheduled store check every ${shopifyDelay / 1000}s`);
-    shopifyInterval = setInterval(async () => {
-        try {
-            await checkShopify(getClient());
-        } catch (e) {
-            console.error('[Shopify] Periodic check error:', e.message);
-        }
-    }, shopifyDelay);
 }
 
 async function runCheck() {
@@ -122,7 +108,7 @@ async function runCheck() {
             await playfab.loginWithSteam(ticket);
         }
 
-        // Fetch catalog
+        // 1. Fetch & diff PlayFab Catalog
         console.log('[Check] Fetching catalog...');
         let catalog;
         try {
@@ -151,7 +137,7 @@ async function runCheck() {
             console.log('[Check] No catalog changes.');
         }
 
-        // Fetch title data
+        // 2. Fetch & diff PlayFab Title Data
         console.log('[Check] Fetching title data...');
         let titleData;
         try {
@@ -173,6 +159,19 @@ async function runCheck() {
             }
         }
 
+        // 3. Fetch & diff Shopify Merch Store
+        console.log('[Check] Checking Shopify merch store...');
+        try {
+            const shopifyChanges = await checkShopify(getClient());
+            if (shopifyChanges && shopifyChanges.length > 0) {
+                console.log(`[Check] ${shopifyChanges.length} Shopify change(s) detected!`);
+            } else {
+                console.log('[Check] No Shopify store changes.');
+            }
+        } catch (e) {
+            console.error('[Check] Shopify check error:', e.message);
+        }
+
         updateCheckStats(catalog.length);
         await updateStatusMessage();
         console.log(`[Check] Done. Next check in ${config.pollIntervalSeconds}s.`);
@@ -189,7 +188,6 @@ process.on('SIGINT', () => {
     console.log('\nShutting down...');
     if (pollInterval) clearInterval(pollInterval);
     if (statusInterval) clearInterval(statusInterval);
-    if (shopifyInterval) clearInterval(shopifyInterval);
     process.exit(0);
 });
 
