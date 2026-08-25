@@ -57,6 +57,7 @@ async function main() {
     if (typeof syncUpcomingNamesFromMapping === 'function') {
         try {
             syncUpcomingNamesFromMapping();
+            await updateListMessage();
         } catch (e) {
             console.warn('[Tracker] Names sync note:', e.message);
         }
