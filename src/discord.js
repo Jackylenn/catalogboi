@@ -90,11 +90,13 @@ async function initBot() {
             }
 
             catalogChannel = await fetchChan(config.discord.catalogChannelId, 'Catalog');
-            newItemsChannel = await fetchChan(config.discord.newItemsChannelId, 'New Items') || catalogChannel;
-            priceChangesChannel = await fetchChan(config.discord.priceChangesChannelId, 'Price Changes') || catalogChannel;
-            titleDataChannel = await fetchChan(config.discord.titleDataChannelId, 'Title Data');
+            newItemsChannel = (await fetchChan(config.discord.newItemsChannelId, 'New Items')) || catalogChannel;
+            priceChangesChannel = (await fetchChan(config.discord.priceChangesChannelId, 'Price Changes')) || catalogChannel;
+            titleDataChannel = (await fetchChan(config.discord.titleDataChannelId, 'Title Data')) || catalogChannel;
             listChannel = await fetchChan(config.discord.listChannelId, 'List');
             statusChannel = await fetchChan(config.discord.statusChannelId, 'Status / Heartbeat');
+            cosmeticsControllerChannel = (await fetchChan(config.discord.cosmeticsControllerChannelId, 'CosmeticsController')) || catalogChannel;
+            shopifyChannel = (await fetchChan(config.discord.shopifyChannelId, 'Shopify Merch')) || newItemsChannel || catalogChannel;
 
             await registerCommands();
             resolve();

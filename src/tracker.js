@@ -211,38 +211,47 @@ function parseTitleDataInput(inputJson) {
 }
 
 
-function loadExistingTitleDataBaseline() {
-    const candidates = [
-        path.join(DATA_DIR, 'title_data_baseline.json'),
-        path.join(DATA_DIR, 'TitleDataCache.json'),
-        path.join(DATA_DIR, 'titledataold.json'),
-        path.join(DATA_DIR, 'titledata_old.json'),
-        path.join(DATA_DIR, 'title_data.json'),
-        path.join(__dirname, '..', 'TitleDataCache.json'),
-        path.join(__dirname, '..', 'title_data_baseline.json'),
-    ];
-
-    for (const c of candidates) {
-        if (fs.existsSync(c)) {
-            try {
-                const raw = fs.readFileSync(c, 'utf8');
-                const parsed = parseTitleDataInput(raw);
-                if (parsed && Object.keys(parsed).length > 0) {
-                    return parsed;
-                }
-            } catch (e) {
-                console.error('[Tracker] Failed to read candidate baseline:', c, e.message);
-            }
-        }
-    }
-    return null;
-}
 
 function diffTitleData(rawTitleData) {
     const newTitleData = parseTitleDataInput(rawTitleData);
     const changes = [];
 
-    const oldTitleData = loadExistingTitleDataBaseline();
+    // Check for manual old backup files FIRST (prioritize over auto-saved baseline)
+    const manualOldCandidates = [
+        path.join(DATA_DIR, 'titledataold.json'),
+        path.join(DATA_DIR, 'titledata_old.json'),
+        path.join(DATA_DIR, 'TitleDataCacheOld.json'),
+        path.join(DATA_DIR, 'TitleDataCache.json'),
+        path.join(DATA_DIR, 'title_data_old.json'),
+        path.join(__dirname, '..', 'titledataold.json'),
+        path.join(__dirname, '..', 'TitleDataCache.json'),
+    ];
+
+    let oldTitleData = null;
+    let manualOldPath = null;
+
+    for (const c of manualOldCandidates) {
+        if (fs.existsSync(c)) {
+            try {
+                const parsed = parseTitleDataInput(fs.readFileSync(c, 'utf8'));
+                if (parsed && Object.keys(parsed).length > 0) {
+                    oldTitleData = parsed;
+                    manualOldPath = c;
+                    console.log(`[Tracker] Loaded manual old Title Data from: ${path.basename(c)} (${Object.keys(parsed).length} keys)`);
+                    break;
+                }
+            } catch (e) {
+                console.error('[Tracker] Failed to read manual old baseline:', c, e.message);
+            }
+        }
+    }
+
+    // If no manual old file, load saved baseline
+    if (!oldTitleData && fs.existsSync(TITLE_DATA_BASELINE)) {
+        try {
+            oldTitleData = parseTitleDataInput(fs.readFileSync(TITLE_DATA_BASELINE, 'utf8'));
+        } catch { }
+    }
 
     if (oldTitleData) {
         const oldKeys = new Set(Object.keys(oldTitleData));
@@ -282,19 +291,28 @@ function diffTitleData(rawTitleData) {
             }
         }
     } else {
-        console.log('[Tracker] No prior title data baseline found - saving current as baseline.');
+        console.log(`[Tracker] No prior title data baseline found - saving current (${Object.keys(newTitleData).length} keys) as baseline.`);
     }
 
-    // Auto-update baseline immediately so it doesn't accidentally run twice
+    // Save new baseline
     try {
         fs.writeFileSync(TITLE_DATA_BASELINE, JSON.stringify(newTitleData, null, 2));
-        console.log(`[Tracker] Title data baseline auto-updated (${Object.keys(newTitleData).length} keys).`);
+        console.log(`[Tracker] Title data baseline saved (${Object.keys(newTitleData).length} keys).`);
     } catch (e) {
         console.error('[Tracker] Failed to save title data baseline:', e.message);
     }
 
+    // If a manual old file was consumed, archive/remove it so it won't repeat on next poll
+    if (manualOldPath && fs.existsSync(manualOldPath)) {
+        try {
+            fs.unlinkSync(manualOldPath);
+            console.log(`[Tracker] Successfully archived manual old file: ${path.basename(manualOldPath)}`);
+        } catch { }
+    }
+
     return changes;
 }
+
 
 
 // ─── Upcoming Cosmetics ─────────────────────────────────────────
