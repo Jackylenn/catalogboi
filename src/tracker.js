@@ -200,6 +200,18 @@ function parseTitleDataInput(inputJson) {
         }
     }
 
+    // 1. Mothership / Game Cache format: { Results: [ { key: "...", data: "..." } ] }
+    if (parsed.Results && Array.isArray(parsed.Results)) {
+        const dict = {};
+        for (const item of parsed.Results) {
+            if (item && item.key) {
+                dict[item.key] = item.data;
+            }
+        }
+        return dict;
+    }
+
+    // 2. PlayFab CacheImport format: { TitleData: { en: { ... } } }
     if (parsed.TitleData && typeof parsed.TitleData === 'object') {
         const langKey = parsed.TitleData.en ? 'en' : Object.keys(parsed.TitleData)[0];
         if (langKey && parsed.TitleData[langKey]) {
@@ -207,6 +219,7 @@ function parseTitleDataInput(inputJson) {
         }
     }
 
+    // 3. Direct Key-Value Dictionary format: { "key": "value" }
     return parsed;
 }
 
