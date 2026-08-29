@@ -1,0 +1,38 @@
+[
+  {
+    "id": 101,
+    "title": "Gorilla Tag Plush (Special Edition)",
+    "handle": "gorilla-tag-plush",
+    "variants": [
+      {
+        "price": "44.99",
+        "available": true
+      }
+    ],
+    "body_html": "<p>Super soft Monke plush</p>"
+  },
+  {
+    "id": 102,
+    "title": "Monke T-Shirt",
+    "handle": "monke-t-shirt",
+    "variants": [
+      {
+        "price": "24.99",
+        "available": true
+      }
+    ],
+    "body_html": "<p>Classic shirt</p>"
+  },
+  {
+    "id": 103,
+    "title": "Monke Gold Pin",
+    "handle": "monke-gold-pin",
+    "variants": [
+      {
+        "price": "14.99",
+        "available": true
+      }
+    ],
+    "body_html": "<p>Shiny golden pin</p>"
+  }
+]

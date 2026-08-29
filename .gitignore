@@ -1,12 +1,8 @@
-﻿node_modules/
+node_modules/
 .env
 data/steam_refresh_token.txt
-data/catalog_baseline.json
-data/title_data_baseline.json
 data/TitleDataCache.json
 data/titledataold.json
 data/titledatanew.json
-data/shopify_products_baseline.json
-data/shopify_collections_baseline.json
 data/list_message_id.txt
 data/status_message_id.txt

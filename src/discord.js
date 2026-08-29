@@ -125,6 +125,9 @@ async function registerCommands() {
             .setName('clearlist')
             .setDescription('Clear the entire upcoming cosmetics list'),
         new SlashCommandBuilder()
+            .setName('checkcatalog')
+            .setDescription('Force an immediate scan of the PlayFab catalog for new items and price changes'),
+        new SlashCommandBuilder()
             .setName('shopify')
             .setDescription('View current Gorilla Tag merch store products & collections'),
         new SlashCommandBuilder()
@@ -216,6 +219,8 @@ async function handleInteraction(interaction) {
         await handleClearList(interaction);
     } else if (interaction.commandName === 'shopify') {
         await handleShopify(interaction);
+    } else if (interaction.commandName === 'checkcatalog') {
+        await handleCheckCatalog(interaction);
     } else if (interaction.commandName === 'checkshopify') {
         await handleCheckShopify(interaction);
     } else if (interaction.commandName === 'checktitledata') {
@@ -266,6 +271,20 @@ async function handlePrefixCommand(message) {
         }
 
         await message.reply({ embeds: [embed] });
+    } else if (cmd === 'checkcatalog') {
+        const replyMsg = await message.reply('🔄 Scanning PlayFab catalog for new items...');
+        try {
+            const { getCatalogItems } = require('./playfab');
+            const { diffCatalog } = require('./tracker');
+            const catalog = await getCatalogItems();
+            const changes = diffCatalog(catalog);
+            if (changes.length > 0) {
+                await sendChanges(changes);
+            }
+            await replyMsg.edit(`✅ Scanned PlayFab catalog (**${catalog.length}** items). Found **${changes.length}** change(s).`);
+        } catch (e) {
+            await replyMsg.edit(`❌ Error checking catalog: ${e.message}`);
+        }
     } else if (cmd === 'checkshopify') {
         const replyMsg = await message.reply('Scanning Shopify merch store for updates...');
         try {
@@ -480,6 +499,22 @@ async function handleShopify(interaction) {
     }
 
     await interaction.reply({ embeds: [embed] });
+}
+
+async function handleCheckCatalog(interaction) {
+    await interaction.deferReply();
+    try {
+        const { getCatalogItems } = require('./playfab');
+        const { diffCatalog } = require('./tracker');
+        const catalog = await getCatalogItems();
+        const changes = diffCatalog(catalog);
+        if (changes.length > 0) {
+            await sendChanges(changes);
+        }
+        await interaction.editReply(`✅ Scanned PlayFab catalog (**${catalog.length}** items). Found **${changes.length}** change(s).`);
+    } catch (e) {
+        await interaction.editReply(`❌ Error checking catalog: ${e.message}`);
+    }
 }
 
 async function handleCheckShopify(interaction) {
