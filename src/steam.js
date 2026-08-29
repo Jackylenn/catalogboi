@@ -1,4 +1,4 @@
-﻿const SteamUser = require('steam-user');
+const SteamUser = require('steam-user');
 const fs = require('fs');
 const path = require('path');
 const config = require('./config');
@@ -7,60 +7,77 @@ const REFRESH_TOKEN_PATH = path.join(__dirname, '..', 'data', 'steam_refresh_tok
 
 let client = null;
 let isLoggedIn = false;
+let isLoggingIn = false;
+let loginPromise = null;
+let reconnectTimer = null;
 
 /**
- * Log into Steam headlessly with minimal RAM footprint.
+ * Log into Steam headlessly with minimal RAM footprint and automatic reconnect.
  */
 function login() {
-    return new Promise((resolve, reject) => {
-        // Disable PICS cache and unneeded data caches to stay well below 40MB RAM
-        client = new SteamUser({
-            renewRefreshTokens: true,
-            enablePicsCache: false,
-            dataDirectory: null,
-        });
+    if (isLoggedIn && client) return Promise.resolve(client);
+    if (isLoggingIn && loginPromise) return loginPromise;
 
-        // Save refresh token when received
-        client.on('refreshToken', (token) => {
-            console.log('[Steam] Received new refresh token. Saving for automated logins...');
-            try {
-                fs.writeFileSync(REFRESH_TOKEN_PATH, token, 'utf8');
-            } catch (e) {
-                console.error('[Steam] Failed to save refresh token:', e.message);
-            }
-        });
-
-        client.on('loggedOn', () => {
-            console.log('[Steam] Logged in successfully as', client.steamID.getSteamID64());
-            isLoggedIn = true;
-            resolve(client);
-        });
-
-        client.on('steamGuard', (domain, callback) => {
-            const rl = require('readline').createInterface({ input: process.stdin, output: process.stdout });
-            const prompt = domain
-                ? `[Steam Guard] Enter code sent to your email (${domain}): `
-                : '[Steam Guard] Enter code from your Steam Mobile Authenticator app: ';
-            rl.question(prompt, (code) => {
-                rl.close();
-                callback(code.trim());
+    isLoggingIn = true;
+    loginPromise = new Promise((resolve, reject) => {
+        if (!client) {
+            client = new SteamUser({
+                renewRefreshTokens: true,
+                enablePicsCache: false,
+                dataDirectory: null,
             });
-        });
 
-        client.on('error', (err) => {
-            console.error('[Steam] Login error:', err.message);
-            isLoggedIn = false;
-            if (fs.existsSync(REFRESH_TOKEN_PATH) && (err.eresult === SteamUser.EResult.InvalidPassword || err.eresult === SteamUser.EResult.AccessDenied)) {
-                console.warn('[Steam] Saved refresh token is no longer valid. Removing it.');
-                try { fs.unlinkSync(REFRESH_TOKEN_PATH); } catch { }
-            }
-            reject(err);
-        });
+            // Save refresh token when received
+            client.on('refreshToken', (token) => {
+                console.log('[Steam] Received new refresh token. Saving for automated logins...');
+                try {
+                    fs.writeFileSync(REFRESH_TOKEN_PATH, token, 'utf8');
+                } catch (e) {
+                    console.error('[Steam] Failed to save refresh token:', e.message);
+                }
+            });
 
-        client.on('disconnected', (eresult, msg) => {
-            console.warn('[Steam] Disconnected:', msg);
-            isLoggedIn = false;
-        });
+            client.on('loggedOn', () => {
+                console.log('[Steam] Logged in successfully as', client.steamID.getSteamID64());
+                isLoggedIn = true;
+                isLoggingIn = false;
+                if (reconnectTimer) {
+                    clearTimeout(reconnectTimer);
+                    reconnectTimer = null;
+                }
+                resolve(client);
+            });
+
+            client.on('steamGuard', (domain, callback) => {
+                const rl = require('readline').createInterface({ input: process.stdin, output: process.stdout });
+                const prompt = domain
+                    ? `[Steam Guard] Enter code sent to your email (${domain}): `
+                    : '[Steam Guard] Enter code from your Steam Mobile Authenticator app: ';
+                rl.question(prompt, (code) => {
+                    rl.close();
+                    callback(code.trim());
+                });
+            });
+
+            client.on('error', (err) => {
+                console.error('[Steam] Login error:', err.message);
+                isLoggedIn = false;
+                isLoggingIn = false;
+                if (fs.existsSync(REFRESH_TOKEN_PATH) && (err.eresult === SteamUser.EResult.InvalidPassword || err.eresult === SteamUser.EResult.AccessDenied)) {
+                    console.warn('[Steam] Saved refresh token is no longer valid. Removing it.');
+                    try { fs.unlinkSync(REFRESH_TOKEN_PATH); } catch { }
+                }
+                scheduleReconnect();
+                reject(err);
+            });
+
+            client.on('disconnected', (eresult, msg) => {
+                console.warn(`[Steam] Disconnected: ${msg} (eresult ${eresult}). Scheduling auto-reconnect...`);
+                isLoggedIn = false;
+                isLoggingIn = false;
+                scheduleReconnect();
+            });
+        }
 
         let logOnOptions = {};
         if (fs.existsSync(REFRESH_TOKEN_PATH)) {
@@ -85,25 +102,42 @@ function login() {
 
         client.logOn(logOnOptions);
     });
+
+    return loginPromise;
+}
+
+function scheduleReconnect() {
+    if (reconnectTimer) return;
+    reconnectTimer = setTimeout(() => {
+        reconnectTimer = null;
+        if (!isLoggedIn) {
+            console.log('[Steam] Attempting automatic reconnection...');
+            login().catch(e => {
+                console.warn('[Steam] Auto-reconnect attempt failed:', e.message);
+            });
+        }
+    }, 10000);
 }
 
 /**
- * Get a fresh Steam auth session ticket for PlayFab authentication.
+ * Get a fresh Steam auth session ticket for PlayFab authentication (with self-healing).
  */
 async function getAuthTicket() {
     if (!client || !isLoggedIn) {
-        let waited = 0;
-        while ((!client || !isLoggedIn) && waited < 10) {
-            await new Promise(r => setTimeout(r, 1000));
-            waited++;
-        }
-        if (!client || !isLoggedIn) {
-            throw new Error('Not logged into Steam. Please ensure Steam connection is active.');
-        }
+        console.log('[Steam] Session not active. Re-logging into Steam...');
+        await login();
     }
 
-    const result = await client.createAuthSessionTicket(config.steam.appId);
-    return result.sessionTicket.toString('hex');
+    try {
+        const result = await client.createAuthSessionTicket(config.steam.appId);
+        return result.sessionTicket.toString('hex');
+    } catch (e) {
+        console.warn('[Steam] createAuthSessionTicket failed, retrying after re-login:', e.message);
+        isLoggedIn = false;
+        await login();
+        const retryResult = await client.createAuthSessionTicket(config.steam.appId);
+        return retryResult.sessionTicket.toString('hex');
+    }
 }
 
 function getClient() { return client; }

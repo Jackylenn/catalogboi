@@ -179,6 +179,7 @@ async function runCheck() {
 
     } catch (e) {
         console.error('[Check] Error during check:', e.message);
+        playfab.clearSession();
     } finally {
         isChecking = false;
     }
