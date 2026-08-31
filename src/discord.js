@@ -1179,21 +1179,42 @@ async function sendChanges(changes) {
 // ─── Embed Builders ──────────────────────────────────────────────
 
 function buildCCUEmbed(change) {
+    // 1. Startup Status Embed
+    if (change.isStartup) {
+        const hasPlayers = change.newCCU > 0;
+        const color = hasPlayers ? 0x2ECC71 : 0xE74C3C;
+        const emoji = hasPlayers ? "🟢" : "🔴";
+
+        const embed = new EmbedBuilder()
+            .setTitle(emoji + " Gorilla Tag Dev / Beta CCU")
+            .setColor(color)
+            .setDescription("**Players online: " + change.newCCU + "**")
+            .addFields(
+                { name: "Current CCU", value: "```" + change.newCCU.toLocaleString() + "```", inline: true },
+                { name: "Status", value: hasPlayers ? "```Active Playtesters```" : "```No Players Online```", inline: true },
+            )
+            .setFooter({ text: "Gorilla Tag Beta CCU Monitor" })
+            .setTimestamp(change.timestamp || new Date());
+
+        return embed;
+    }
+
+    // 2. Change / Diff Embed
     const isIncrease = change.diff > 0;
     const color = isIncrease ? 0x2ECC71 : 0xE74C3C;
-    const arrow = isIncrease ? '📈' : '📉';
-    const sign = isIncrease ? 'Increased' : 'Decreased';
+    const arrow = isIncrease ? "📈" : "📉";
+    const sign = isIncrease ? "Increased" : "Decreased";
 
     const embed = new EmbedBuilder()
-        .setTitle(`${arrow} CCU ${sign}`)
+        .setTitle(arrow + " Beta CCU " + sign)
         .setColor(color)
-        .setDescription(`Gorilla Tag concurrent player count changed from **${change.oldCCU.toLocaleString()}** to **${change.newCCU.toLocaleString()}**.`)
+        .setDescription("**Players online: " + change.newCCU + "**\nPlayer count changed from **" + change.oldCCU + "** to **" + change.newCCU + "** (" + change.diffStr + ").")
         .addFields(
-            { name: 'Current CCU', value: '```' + change.newCCU.toLocaleString() + '```', inline: true },
-            { name: 'Previous CCU', value: '```' + change.oldCCU.toLocaleString() + '```', inline: true },
-            { name: 'Difference', value: '```' + change.diffStr + ' (' + (change.pctChange > 0 ? '+' : '') + change.pctChange + '%)```', inline: true },
+            { name: "Current CCU", value: "```" + change.newCCU.toLocaleString() + "```", inline: true },
+            { name: "Previous CCU", value: "```" + change.oldCCU.toLocaleString() + "```", inline: true },
+            { name: "Difference", value: "```" + change.diffStr + " (" + (change.pctChange > 0 ? "+" : "") + change.pctChange + "%)```", inline: true },
         )
-        .setFooter({ text: 'Gorilla Tag CCU Monitor' })
+        .setFooter({ text: "Gorilla Tag Beta CCU Monitor" })
         .setTimestamp(change.timestamp || new Date());
 
     return embed;

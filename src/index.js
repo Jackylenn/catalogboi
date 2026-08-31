@@ -70,6 +70,18 @@ async function main() {
         console.warn('[Hierarchy] Check error:', e.message);
     }
 
+    // Startup: Check & post initial Dev/Beta CCU status embed
+    try {
+        const { diffCCU } = require('./ccu');
+        const { sendCCUChange } = require('./discord');
+        const startupCCU = await diffCCU(true);
+        if (startupCCU) {
+            await sendCCUChange(startupCCU);
+        }
+    } catch (e) {
+        console.warn('[CCU] Startup check note:', e.message);
+    }
+
     console.log('\n=== Bot is running! ===');
     console.log('Running initial check...\n');
 

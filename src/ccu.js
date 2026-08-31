@@ -79,9 +79,9 @@ function saveCCUBaseline(data) {
 
 /**
  * Compare live CCU against saved baseline.
- * When no one is online, API returns { ccuTotal: null } which is treated as 0 players online.
+ * If isStartup is true, sends an initial status embed on boot.
  */
-async function diffCCU() {
+async function diffCCU(isStartup = false) {
     const live = await fetchLiveCCU();
 
     // In dev/beta endpoint, null or error indicates 0 players currently online
@@ -91,10 +91,16 @@ async function diffCCU() {
 
     const saved = getSavedCCU();
 
-    if (!saved || saved.ccuTotal === undefined) {
-        console.log(`[CCU] Initialized Beta CCU baseline with ${newCCU} player(s).`);
+    if (isStartup || !saved || saved.ccuTotal === undefined) {
+        console.log(`[CCU] Startup check - ${newCCU} player(s) online.`);
         saveCCUBaseline({ ccuTotal: newCCU, lastUpdated: new Date().toISOString() });
-        return null;
+        return {
+            isStartup: true,
+            newCCU,
+            oldCCU: null,
+            diff: 0,
+            timestamp: new Date(),
+        };
     }
 
     const oldCCU = parseInt(saved.ccuTotal, 10);
@@ -108,6 +114,7 @@ async function diffCCU() {
         }
 
         const change = {
+            isStartup: false,
             oldCCU,
             newCCU,
             diff,
