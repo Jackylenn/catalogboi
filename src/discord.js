@@ -275,8 +275,8 @@ async function handlePrefixCommand(message) {
                 .setColor(0x3498DB)
                 .setDescription(`**${currentCCU.toLocaleString()}** player(s) currently online.`)
                 .addFields(
-                    { name: 'Current CCU', value: ```${currentCCU.toLocaleString()}```, inline: true },
-                    { name: 'Baseline CCU', value: ```${prevCCU !== null ? prevCCU.toLocaleString() : 'N/A'}```, inline: true },
+                    { name: 'Current CCU', value: '```' + currentCCU.toLocaleString() + '```', inline: true },
+                    { name: 'Baseline CCU', value: '```' + (prevCCU !== null ? prevCCU.toLocaleString() : 'N/A') + '```', inline: true },
                 )
                 .setFooter({ text: 'Gorilla Tag CCU Monitor' })
                 .setTimestamp();
@@ -541,8 +541,8 @@ async function handleCCU(interaction) {
             .setColor(0x3498DB)
             .setDescription(`**${currentCCU.toLocaleString()}** player(s) currently online.`)
             .addFields(
-                { name: 'Current CCU', value: ```${currentCCU.toLocaleString()}```, inline: true },
-                { name: 'Baseline CCU', value: ```${prevCCU !== null ? prevCCU.toLocaleString() : 'N/A'}```, inline: true },
+                { name: 'Current CCU', value: '```' + currentCCU.toLocaleString() + '```', inline: true },
+                { name: 'Baseline CCU', value: '```' + (prevCCU !== null ? prevCCU.toLocaleString() : 'N/A') + '```', inline: true },
             )
             .setFooter({ text: 'Gorilla Tag CCU Monitor' })
             .setTimestamp();
@@ -1189,9 +1189,9 @@ function buildCCUEmbed(change) {
         .setColor(color)
         .setDescription(`Gorilla Tag concurrent player count changed from **${change.oldCCU.toLocaleString()}** to **${change.newCCU.toLocaleString()}**.`)
         .addFields(
-            { name: 'Current CCU', value: ```${change.newCCU.toLocaleString()}```, inline: true },
-            { name: 'Previous CCU', value: ```${change.oldCCU.toLocaleString()}```, inline: true },
-            { name: 'Difference', value: ```${change.diffStr} (${change.pctChange > 0 ? '+' : ''}${change.pctChange}%)```, inline: true },
+            { name: 'Current CCU', value: '```' + change.newCCU.toLocaleString() + '```', inline: true },
+            { name: 'Previous CCU', value: '```' + change.oldCCU.toLocaleString() + '```', inline: true },
+            { name: 'Difference', value: '```' + change.diffStr + ' (' + (change.pctChange > 0 ? '+' : '') + change.pctChange + '%)```', inline: true },
         )
         .setFooter({ text: 'Gorilla Tag CCU Monitor' })
         .setTimestamp(change.timestamp || new Date());
