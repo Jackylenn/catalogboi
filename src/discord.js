@@ -267,23 +267,13 @@ async function handlePrefixCommand(message) {
         try {
             const data = await fetchLiveCCU();
             const currentCCU = (data && data.ccuTotal !== null && data.ccuTotal !== undefined) ? parseInt(data.ccuTotal, 10) : 0;
-            const saved = getSavedCCU();
-            const prevCCU = saved ? parseInt(saved.ccuTotal, 10) : null;
-
+            const color = currentCCU > 0 ? 0x2ECC71 : 0xE74C3C;
             const embed = new EmbedBuilder()
-                .setTitle('Gorilla Tag Concurrent Players (CCU)')
-                .setColor(0x3498DB)
-                .setDescription(`**${currentCCU.toLocaleString()}** player(s) currently online.`)
-                .addFields(
-                    { name: 'Current CCU', value: '```' + currentCCU.toLocaleString() + '```', inline: true },
-                    { name: 'Baseline CCU', value: '```' + (prevCCU !== null ? prevCCU.toLocaleString() : 'N/A') + '```', inline: true },
-                )
-                .setFooter({ text: 'Gorilla Tag CCU Monitor' })
-                .setTimestamp();
-
+                .setTitle('Players online: ' + currentCCU)
+                .setColor(color);
             await message.reply({ embeds: [embed] });
         } catch (e) {
-            await message.reply(`❌ Error fetching CCU: ${e.message}`);
+            await message.reply('❌ Error fetching CCU: ' + e.message);
         }
     } else if (cmd === 'checkccu') {
         const replyMsg = await message.reply('🔄 Checking Gorilla Tag CCU...');
@@ -533,23 +523,13 @@ async function handleCCU(interaction) {
     try {
         const data = await fetchLiveCCU();
         const currentCCU = (data && data.ccuTotal !== null && data.ccuTotal !== undefined) ? parseInt(data.ccuTotal, 10) : 0;
-        const saved = getSavedCCU();
-        const prevCCU = saved ? parseInt(saved.ccuTotal, 10) : null;
-
+        const color = currentCCU > 0 ? 0x2ECC71 : 0xE74C3C;
         const embed = new EmbedBuilder()
-            .setTitle('Gorilla Tag Concurrent Players (CCU)')
-            .setColor(0x3498DB)
-            .setDescription(`**${currentCCU.toLocaleString()}** player(s) currently online.`)
-            .addFields(
-                { name: 'Current CCU', value: '```' + currentCCU.toLocaleString() + '```', inline: true },
-                { name: 'Baseline CCU', value: '```' + (prevCCU !== null ? prevCCU.toLocaleString() : 'N/A') + '```', inline: true },
-            )
-            .setFooter({ text: 'Gorilla Tag CCU Monitor' })
-            .setTimestamp();
-
+            .setTitle('Players online: ' + currentCCU)
+            .setColor(color);
         await interaction.editReply({ embeds: [embed] });
     } catch (e) {
-        await interaction.editReply(`❌ Error fetching CCU: ${e.message}`);
+        await interaction.editReply('❌ Error fetching CCU: ' + e.message);
     }
 }
 
@@ -1179,45 +1159,10 @@ async function sendChanges(changes) {
 // ─── Embed Builders ──────────────────────────────────────────────
 
 function buildCCUEmbed(change) {
-    // 1. Startup Status Embed
-    if (change.isStartup) {
-        const hasPlayers = change.newCCU > 0;
-        const color = hasPlayers ? 0x2ECC71 : 0xE74C3C;
-        const emoji = hasPlayers ? "🟢" : "🔴";
-
-        const embed = new EmbedBuilder()
-            .setTitle(emoji + " Gorilla Tag Dev / Beta CCU")
-            .setColor(color)
-            .setDescription("**Players online: " + change.newCCU + "**")
-            .addFields(
-                { name: "Current CCU", value: "```" + change.newCCU.toLocaleString() + "```", inline: true },
-                { name: "Status", value: hasPlayers ? "```Active Playtesters```" : "```No Players Online```", inline: true },
-            )
-            .setFooter({ text: "Gorilla Tag Beta CCU Monitor" })
-            .setTimestamp(change.timestamp || new Date());
-
-        return embed;
-    }
-
-    // 2. Change / Diff Embed
-    const isIncrease = change.diff > 0;
-    const color = isIncrease ? 0x2ECC71 : 0xE74C3C;
-    const arrow = isIncrease ? "📈" : "📉";
-    const sign = isIncrease ? "Increased" : "Decreased";
-
-    const embed = new EmbedBuilder()
-        .setTitle(arrow + " Beta CCU " + sign)
-        .setColor(color)
-        .setDescription("**Players online: " + change.newCCU + "**\nPlayer count changed from **" + change.oldCCU + "** to **" + change.newCCU + "** (" + change.diffStr + ").")
-        .addFields(
-            { name: "Current CCU", value: "```" + change.newCCU.toLocaleString() + "```", inline: true },
-            { name: "Previous CCU", value: "```" + change.oldCCU.toLocaleString() + "```", inline: true },
-            { name: "Difference", value: "```" + change.diffStr + " (" + (change.pctChange > 0 ? "+" : "") + change.pctChange + "%)```", inline: true },
-        )
-        .setFooter({ text: "Gorilla Tag Beta CCU Monitor" })
-        .setTimestamp(change.timestamp || new Date());
-
-    return embed;
+    const color = change.newCCU > 0 ? 0x2ECC71 : 0xE74C3C;
+    return new EmbedBuilder()
+        .setTitle('Players online: ' + change.newCCU)
+        .setColor(color);
 }
 
 async function sendCCUChange(change) {
