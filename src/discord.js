@@ -266,7 +266,7 @@ async function handlePrefixCommand(message) {
     } else if (cmd === 'ccu') {
         try {
             const data = await fetchLiveCCU();
-            const currentCCU = parseInt(data.ccuTotal, 10);
+            const currentCCU = (data && data.ccuTotal !== null && data.ccuTotal !== undefined) ? parseInt(data.ccuTotal, 10) : 0;
             const saved = getSavedCCU();
             const prevCCU = saved ? parseInt(saved.ccuTotal, 10) : null;
 
@@ -532,7 +532,7 @@ async function handleCCU(interaction) {
     await interaction.deferReply();
     try {
         const data = await fetchLiveCCU();
-        const currentCCU = parseInt(data.ccuTotal, 10);
+        const currentCCU = (data && data.ccuTotal !== null && data.ccuTotal !== undefined) ? parseInt(data.ccuTotal, 10) : 0;
         const saved = getSavedCCU();
         const prevCCU = saved ? parseInt(saved.ccuTotal, 10) : null;
 

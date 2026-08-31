@@ -6,18 +6,15 @@ const config = require('./config');
 const DATA_DIR = path.join(__dirname, '..', 'data');
 const CCU_BASELINE_PATH = path.join(DATA_DIR, 'ccu_baseline.json');
 
-// Primary production endpoint & dev fallback
-const PROD_ENDPOINT = 'https://moderationfunctions.azurewebsites.net/api/CCU';
-const DEV_ENDPOINT = 'https://moderationfunctions-dev.azurewebsites.net/api/CCU';
-
-const CCU_ENDPOINT = process.env.CCU_API_URL || PROD_ENDPOINT;
+// Gorilla Tag Dev / Beta CCU Endpoint
+const CCU_ENDPOINT = process.env.CCU_API_URL || 'https://moderationfunctions-dev.azurewebsites.net/api/CCU';
 
 /**
- * Send POST request to a given CCU endpoint.
+ * Fetch live CCU from Gorilla Tag Moderation Functions API.
  */
-function sendCCURequest(endpointUrl) {
-    return new Promise((resolve, reject) => {
-        const urlObj = new URL(endpointUrl);
+function fetchLiveCCU() {
+    return new Promise((resolve) => {
+        const urlObj = new URL(CCU_ENDPOINT);
         const options = {
             hostname: urlObj.hostname,
             path: urlObj.pathname + urlObj.search,
@@ -38,9 +35,9 @@ function sendCCURequest(endpointUrl) {
             res.on('end', () => {
                 try {
                     const parsed = JSON.parse(data);
-                    resolve({ status: res.statusCode, data: parsed });
+                    resolve(parsed);
                 } catch (e) {
-                    resolve({ status: res.statusCode, error: data });
+                    resolve({ ccuTotal: null, error: data });
                 }
             });
         });
@@ -50,36 +47,11 @@ function sendCCURequest(endpointUrl) {
         });
 
         req.on('error', (err) => {
-            reject(err);
+            resolve({ ccuTotal: null, error: err.message });
         });
 
         req.end();
     });
-}
-
-/**
- * Fetch live CCU from Gorilla Tag Moderation Functions API (with fallback).
- */
-async function fetchLiveCCU() {
-    // 1. Try configured endpoint (default: prod)
-    try {
-        const res = await sendCCURequest(CCU_ENDPOINT);
-        if (res.data && res.data.ccuTotal !== null && res.data.ccuTotal !== undefined) {
-            return res.data;
-        }
-    } catch { }
-
-    // 2. If configured was dev and failed, fallback to prod
-    if (CCU_ENDPOINT === DEV_ENDPOINT) {
-        try {
-            const fallbackRes = await sendCCURequest(PROD_ENDPOINT);
-            if (fallbackRes.data && fallbackRes.data.ccuTotal !== null) {
-                return fallbackRes.data;
-            }
-        } catch { }
-    }
-
-    return { ccuTotal: null, errorMessage: 'CCU servers currently unreachable' };
 }
 
 /**
@@ -107,20 +79,20 @@ function saveCCUBaseline(data) {
 
 /**
  * Compare live CCU against saved baseline.
- * Returns null if no change (or baseline initialized), or change object { oldCCU, newCCU, diff, diffStr, pctChange, timestamp }
+ * When no one is online, API returns { ccuTotal: null } which is treated as 0 players online.
  */
 async function diffCCU() {
     const live = await fetchLiveCCU();
-    if (live.ccuTotal === undefined || live.ccuTotal === null) {
-        console.warn(`[CCU] Service temporarily unavailable: ${live.errorMessage || 'No CCU count returned'}`);
-        return null;
-    }
 
-    const newCCU = parseInt(live.ccuTotal, 10);
+    // In dev/beta endpoint, null or error indicates 0 players currently online
+    const newCCU = (live && live.ccuTotal !== null && live.ccuTotal !== undefined)
+        ? parseInt(live.ccuTotal, 10)
+        : 0;
+
     const saved = getSavedCCU();
 
     if (!saved || saved.ccuTotal === undefined) {
-        console.log(`[CCU] Initialized baseline with ${newCCU.toLocaleString()} player(s).`);
+        console.log(`[CCU] Initialized Beta CCU baseline with ${newCCU} player(s).`);
         saveCCUBaseline({ ccuTotal: newCCU, lastUpdated: new Date().toISOString() });
         return null;
     }
@@ -129,7 +101,7 @@ async function diffCCU() {
 
     if (newCCU !== oldCCU) {
         const diff = newCCU - oldCCU;
-        const diffStr = diff > 0 ? `+${diff.toLocaleString()}` : `${diff.toLocaleString()}`;
+        const diffStr = diff > 0 ? `+${diff}` : `${diff}`;
         let pctChange = 0;
         if (oldCCU > 0) {
             pctChange = ((diff / oldCCU) * 100).toFixed(1);
@@ -156,7 +128,5 @@ module.exports = {
     getSavedCCU,
     diffCCU,
     CCU_ENDPOINT,
-    PROD_ENDPOINT,
-    DEV_ENDPOINT,
 };
 
