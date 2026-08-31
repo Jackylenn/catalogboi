@@ -20,6 +20,7 @@ module.exports = {
         hierarchyChannelId: process.env.HIERARCHY_CHANNEL_ID || process.env.HIARCHY_CHANNEL_ID,
         cosmeticsControllerChannelId: process.env.COSMETICS_CONTROLLER_CHANNEL_ID || process.env.COSMETIC_CONTROLLER_CHANNEL_ID,
         shopifyChannelId: process.env.SHOPIFY_CHANNEL_ID || process.env.STORE_CHANNEL_ID || process.env.MERCH_CHANNEL_ID,
+        ccuChannelId: process.env.CCU_CHANNEL_ID,
     },
     steam: {
         username: process.env.STEAM_USERNAME,

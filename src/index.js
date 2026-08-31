@@ -173,6 +173,22 @@ async function runCheck() {
             console.error('[Check] Shopify check error:', e.message);
         }
 
+        // 4. Fetch & diff CCU Tracker
+        console.log('[Check] Checking CCU...');
+        try {
+            const { diffCCU } = require('./ccu');
+            const { sendCCUChange } = require('./discord');
+            const ccuChange = await diffCCU();
+            if (ccuChange) {
+                console.log(`[Check] CCU changed: ${ccuChange.oldCCU} -> ${ccuChange.newCCU} (${ccuChange.diffStr})`);
+                await sendCCUChange(ccuChange);
+            } else {
+                console.log('[Check] No CCU changes.');
+            }
+        } catch (e) {
+            console.error('[Check] CCU check error:', e.message);
+        }
+
         updateCheckStats(catalog.length);
         await updateStatusMessage();
         console.log(`[Check] Done. Next check in ${config.pollIntervalSeconds}s.`);

@@ -6,6 +6,7 @@ const { getUpcomingCosmetics, getItemDisplayName, removeUpcomingCosmetics, reset
 const { getItemCategory } = require('./categories');
 const { getSavedProducts, getSavedCollections, checkShopify, fetchShopifyStoreData, STORE_DOMAIN } = require('./shopify');
 const { purchaseItem } = require('./playfab');
+const { diffCCU, getSavedCCU, fetchLiveCCU } = require('./ccu');
 
 let client = null;
 let catalogChannel = null;
@@ -16,6 +17,7 @@ let listChannel = null;
 let statusChannel = null;
 let cosmeticsControllerChannel = null;
 let shopifyChannel = null;
+let ccuChannel = null;
 let startTime = Date.now();
 let lastCheckTime = null;
 let lastCheckItemCount = 0;
@@ -97,6 +99,7 @@ async function initBot() {
             statusChannel = await fetchChan(config.discord.statusChannelId, 'Status / Heartbeat');
             cosmeticsControllerChannel = (await fetchChan(config.discord.cosmeticsControllerChannelId, 'CosmeticsController')) || catalogChannel;
             shopifyChannel = (await fetchChan(config.discord.shopifyChannelId, 'Shopify Merch')) || newItemsChannel || catalogChannel;
+            ccuChannel = (await fetchChan(config.discord.ccuChannelId, 'CCU Tracker')) || catalogChannel;
 
             await registerCommands();
             resolve();
@@ -127,6 +130,12 @@ async function registerCommands() {
         new SlashCommandBuilder()
             .setName('checkcatalog')
             .setDescription('Force an immediate scan of the PlayFab catalog for new items and price changes'),
+        new SlashCommandBuilder()
+            .setName('ccu')
+            .setDescription('View current Gorilla Tag concurrent online players (CCU)'),
+        new SlashCommandBuilder()
+            .setName('checkccu')
+            .setDescription('Force an immediate check of Gorilla Tag CCU'),
         new SlashCommandBuilder()
             .setName('shopify')
             .setDescription('View current Gorilla Tag merch store products & collections'),
@@ -217,6 +226,10 @@ async function handleInteraction(interaction) {
         await handleStatus(interaction);
     } else if (interaction.commandName === 'clearlist') {
         await handleClearList(interaction);
+    } else if (interaction.commandName === 'ccu') {
+        await handleCCU(interaction);
+    } else if (interaction.commandName === 'checkccu') {
+        await handleCheckCCU(interaction);
     } else if (interaction.commandName === 'shopify') {
         await handleShopify(interaction);
     } else if (interaction.commandName === 'checkcatalog') {
@@ -250,6 +263,43 @@ async function handlePrefixCommand(message) {
         await updateListMessage();
         await updateStatusMessage();
         console.log('[Discord] ?clearlist executed by', message.author.tag);
+    } else if (cmd === 'ccu') {
+        try {
+            const data = await fetchLiveCCU();
+            const currentCCU = parseInt(data.ccuTotal, 10);
+            const saved = getSavedCCU();
+            const prevCCU = saved ? parseInt(saved.ccuTotal, 10) : null;
+
+            const embed = new EmbedBuilder()
+                .setTitle('Gorilla Tag Concurrent Players (CCU)')
+                .setColor(0x3498DB)
+                .setDescription(`**${currentCCU.toLocaleString()}** player(s) currently online.`)
+                .addFields(
+                    { name: 'Current CCU', value: ```${currentCCU.toLocaleString()}```, inline: true },
+                    { name: 'Baseline CCU', value: ```${prevCCU !== null ? prevCCU.toLocaleString() : 'N/A'}```, inline: true },
+                )
+                .setFooter({ text: 'Gorilla Tag CCU Monitor' })
+                .setTimestamp();
+
+            await message.reply({ embeds: [embed] });
+        } catch (e) {
+            await message.reply(`❌ Error fetching CCU: ${e.message}`);
+        }
+    } else if (cmd === 'checkccu') {
+        const replyMsg = await message.reply('🔄 Checking Gorilla Tag CCU...');
+        try {
+            const change = await diffCCU();
+            if (change) {
+                await sendCCUChange(change);
+                await replyMsg.edit(`✅ CCU Changed! **${change.oldCCU}** → **${change.newCCU}** (${change.diffStr})`);
+            } else {
+                const saved = getSavedCCU();
+                const count = saved?.ccuTotal !== undefined ? saved.ccuTotal : 'Unknown';
+                await replyMsg.edit(`✅ CCU checked: **${count}** player(s) online. No change detected.`);
+            }
+        } catch (e) {
+            await replyMsg.edit(`❌ Error checking CCU: ${e.message}`);
+        }
     } else if (cmd === 'shopify') {
         const products = getSavedProducts();
         const collections = getSavedCollections();
@@ -477,6 +527,48 @@ async function handlePrefixCommand(message) {
 
 
 
+
+async function handleCCU(interaction) {
+    await interaction.deferReply();
+    try {
+        const data = await fetchLiveCCU();
+        const currentCCU = parseInt(data.ccuTotal, 10);
+        const saved = getSavedCCU();
+        const prevCCU = saved ? parseInt(saved.ccuTotal, 10) : null;
+
+        const embed = new EmbedBuilder()
+            .setTitle('Gorilla Tag Concurrent Players (CCU)')
+            .setColor(0x3498DB)
+            .setDescription(`**${currentCCU.toLocaleString()}** player(s) currently online.`)
+            .addFields(
+                { name: 'Current CCU', value: ```${currentCCU.toLocaleString()}```, inline: true },
+                { name: 'Baseline CCU', value: ```${prevCCU !== null ? prevCCU.toLocaleString() : 'N/A'}```, inline: true },
+            )
+            .setFooter({ text: 'Gorilla Tag CCU Monitor' })
+            .setTimestamp();
+
+        await interaction.editReply({ embeds: [embed] });
+    } catch (e) {
+        await interaction.editReply(`❌ Error fetching CCU: ${e.message}`);
+    }
+}
+
+async function handleCheckCCU(interaction) {
+    await interaction.deferReply();
+    try {
+        const change = await diffCCU();
+        if (change) {
+            await sendCCUChange(change);
+            await interaction.editReply(`✅ CCU Changed! **${change.oldCCU}** → **${change.newCCU}** (${change.diffStr})`);
+        } else {
+            const saved = getSavedCCU();
+            const count = saved?.ccuTotal !== undefined ? saved.ccuTotal : 'Unknown';
+            await interaction.editReply(`✅ CCU checked: **${count}** player(s) online. No change detected.`);
+        }
+    } catch (e) {
+        await interaction.editReply(`❌ Error checking CCU: ${e.message}`);
+    }
+}
 
 async function handleShopify(interaction) {
     const products = getSavedProducts();
@@ -1086,6 +1178,34 @@ async function sendChanges(changes) {
 
 // ─── Embed Builders ──────────────────────────────────────────────
 
+function buildCCUEmbed(change) {
+    const isIncrease = change.diff > 0;
+    const color = isIncrease ? 0x2ECC71 : 0xE74C3C;
+    const arrow = isIncrease ? '📈' : '📉';
+    const sign = isIncrease ? 'Increased' : 'Decreased';
+
+    const embed = new EmbedBuilder()
+        .setTitle(`${arrow} CCU ${sign}`)
+        .setColor(color)
+        .setDescription(`Gorilla Tag concurrent player count changed from **${change.oldCCU.toLocaleString()}** to **${change.newCCU.toLocaleString()}**.`)
+        .addFields(
+            { name: 'Current CCU', value: ```${change.newCCU.toLocaleString()}```, inline: true },
+            { name: 'Previous CCU', value: ```${change.oldCCU.toLocaleString()}```, inline: true },
+            { name: 'Difference', value: ```${change.diffStr} (${change.pctChange > 0 ? '+' : ''}${change.pctChange}%)```, inline: true },
+        )
+        .setFooter({ text: 'Gorilla Tag CCU Monitor' })
+        .setTimestamp(change.timestamp || new Date());
+
+    return embed;
+}
+
+async function sendCCUChange(change) {
+    if (!change) return;
+    const embed = buildCCUEmbed(change);
+    const targetChan = ccuChannel || catalogChannel;
+    await sendToSpecificChannel(targetChan, embed);
+}
+
 function buildNewItemEmbed(change) {
     const item = change.item;
     const embed = new EmbedBuilder()
@@ -1265,4 +1385,4 @@ function updateCheckStats(itemCount) {
 }
 
 function getClient() { return client; }
-module.exports = { initBot, sendChanges, updateCheckStats, updateListMessage, updateStatusMessage, sleep, getClient };
+module.exports = { initBot, sendChanges, sendCCUChange, updateCheckStats, updateListMessage, updateStatusMessage, sleep, getClient };
