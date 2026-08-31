@@ -6,14 +6,18 @@ const config = require('./config');
 const DATA_DIR = path.join(__dirname, '..', 'data');
 const CCU_BASELINE_PATH = path.join(DATA_DIR, 'ccu_baseline.json');
 
-const CCU_ENDPOINT = 'https://moderationfunctions-dev.azurewebsites.net/api/CCU';
+// Primary production endpoint & dev fallback
+const PROD_ENDPOINT = 'https://moderationfunctions.azurewebsites.net/api/CCU';
+const DEV_ENDPOINT = 'https://moderationfunctions-dev.azurewebsites.net/api/CCU';
+
+const CCU_ENDPOINT = process.env.CCU_API_URL || PROD_ENDPOINT;
 
 /**
- * Fetch live CCU from Gorilla Tag Moderation Functions API.
+ * Send POST request to a given CCU endpoint.
  */
-function fetchLiveCCU() {
+function sendCCURequest(endpointUrl) {
     return new Promise((resolve, reject) => {
-        const urlObj = new URL(CCU_ENDPOINT);
+        const urlObj = new URL(endpointUrl);
         const options = {
             hostname: urlObj.hostname,
             path: urlObj.pathname + urlObj.search,
@@ -34,9 +38,9 @@ function fetchLiveCCU() {
             res.on('end', () => {
                 try {
                     const parsed = JSON.parse(data);
-                    resolve(parsed);
+                    resolve({ status: res.statusCode, data: parsed });
                 } catch (e) {
-                    reject(new Error(`Failed to parse CCU response: ${data.substring(0, 100)}`));
+                    resolve({ status: res.statusCode, error: data });
                 }
             });
         });
@@ -51,6 +55,31 @@ function fetchLiveCCU() {
 
         req.end();
     });
+}
+
+/**
+ * Fetch live CCU from Gorilla Tag Moderation Functions API (with fallback).
+ */
+async function fetchLiveCCU() {
+    // 1. Try configured endpoint (default: prod)
+    try {
+        const res = await sendCCURequest(CCU_ENDPOINT);
+        if (res.data && res.data.ccuTotal !== null && res.data.ccuTotal !== undefined) {
+            return res.data;
+        }
+    } catch { }
+
+    // 2. If configured was dev and failed, fallback to prod
+    if (CCU_ENDPOINT === DEV_ENDPOINT) {
+        try {
+            const fallbackRes = await sendCCURequest(PROD_ENDPOINT);
+            if (fallbackRes.data && fallbackRes.data.ccuTotal !== null) {
+                return fallbackRes.data;
+            }
+        } catch { }
+    }
+
+    return { ccuTotal: null, errorMessage: 'CCU servers currently unreachable' };
 }
 
 /**
@@ -91,7 +120,7 @@ async function diffCCU() {
     const saved = getSavedCCU();
 
     if (!saved || saved.ccuTotal === undefined) {
-        console.log(`[CCU] First run - initialized baseline with ${newCCU} player(s).`);
+        console.log(`[CCU] Initialized baseline with ${newCCU.toLocaleString()} player(s).`);
         saveCCUBaseline({ ccuTotal: newCCU, lastUpdated: new Date().toISOString() });
         return null;
     }
@@ -100,7 +129,7 @@ async function diffCCU() {
 
     if (newCCU !== oldCCU) {
         const diff = newCCU - oldCCU;
-        const diffStr = diff > 0 ? `+${diff}` : `${diff}`;
+        const diffStr = diff > 0 ? `+${diff.toLocaleString()}` : `${diff.toLocaleString()}`;
         let pctChange = 0;
         if (oldCCU > 0) {
             pctChange = ((diff / oldCCU) * 100).toFixed(1);
@@ -127,4 +156,7 @@ module.exports = {
     getSavedCCU,
     diffCCU,
     CCU_ENDPOINT,
+    PROD_ENDPOINT,
+    DEV_ENDPOINT,
 };
+
