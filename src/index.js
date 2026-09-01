@@ -205,24 +205,15 @@ async function runCheck() {
         console.log('[Check] Checking Dev PlayFab catalog (195C0)...');
         try {
             const devPlayfab = require('./dev_playfab');
-            const { diffDevCatalog, diffDevTitleData } = require('./tracker');
+            const { diffDevCatalog } = require('./tracker');
             const { sendDevChanges } = require('./discord');
 
             const devCatalog = await devPlayfab.getDevCatalogItems();
             const devCatalogChanges = diffDevCatalog(devCatalog);
 
-            let devTitleChanges = [];
-            try {
-                const devTd = await devPlayfab.getDevTitleData();
-                devTitleChanges = diffDevTitleData(devTd);
-            } catch (e) {
-                console.warn('[Check] Failed to fetch dev title data:', e.message);
-            }
-
-            const totalDevChanges = [...devCatalogChanges, ...devTitleChanges];
-            if (totalDevChanges.length > 0) {
-                console.log(`[Check] ${totalDevChanges.length} Dev catalog change(s) detected!`);
-                await sendDevChanges(totalDevChanges);
+            if (devCatalogChanges.length > 0) {
+                console.log(`[Check] ${devCatalogChanges.length} Dev catalog change(s) detected!`);
+                await sendDevChanges(devCatalogChanges);
             } else {
                 console.log('[Check] No Dev catalog changes.');
             }

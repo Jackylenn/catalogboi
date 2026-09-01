@@ -324,22 +324,15 @@ async function handlePrefixCommand(message) {
     } else if (cmd === 'checkdev' || cmd === 'checkdevcatalog') {
         const replyMsg = await message.reply('🔄 Scanning Dev PlayFab catalog (195C0)...');
         try {
-            const { getDevCatalogItems, getDevTitleData } = require('./dev_playfab');
-            const { diffDevCatalog, diffDevTitleData } = require('./tracker');
+            const { getDevCatalogItems } = require('./dev_playfab');
+            const { diffDevCatalog } = require('./tracker');
             const catalog = await getDevCatalogItems();
             const changes = diffDevCatalog(catalog);
 
-            let titleChanges = [];
-            try {
-                const td = await getDevTitleData();
-                titleChanges = diffDevTitleData(td);
-            } catch { }
-
-            const totalChanges = [...changes, ...titleChanges];
-            if (totalChanges.length > 0) {
-                await sendDevChanges(totalChanges);
+            if (changes.length > 0) {
+                await sendDevChanges(changes);
             }
-            await replyMsg.edit(`✅ Scanned Dev catalog (**${catalog.length}** items). Found **${totalChanges.length}** change(s).`);
+            await replyMsg.edit(`✅ Scanned Dev catalog (**${catalog.length}** items). Found **${changes.length}** change(s).`);
         } catch (e) {
             await replyMsg.edit(`❌ Error checking Dev catalog: ${e.message}`);
         }
@@ -608,22 +601,15 @@ async function handleShopify(interaction) {
 async function handleCheckDevCatalog(interaction) {
     await interaction.deferReply();
     try {
-        const { getDevCatalogItems, getDevTitleData } = require('./dev_playfab');
-        const { diffDevCatalog, diffDevTitleData } = require('./tracker');
+        const { getDevCatalogItems } = require('./dev_playfab');
+        const { diffDevCatalog } = require('./tracker');
         const catalog = await getDevCatalogItems();
         const changes = diffDevCatalog(catalog);
 
-        let titleChanges = [];
-        try {
-            const td = await getDevTitleData();
-            titleChanges = diffDevTitleData(td);
-        } catch { }
-
-        const totalChanges = [...changes, ...titleChanges];
-        if (totalChanges.length > 0) {
-            await sendDevChanges(totalChanges);
+        if (changes.length > 0) {
+            await sendDevChanges(changes);
         }
-        await interaction.editReply(`✅ Scanned Dev catalog (**${catalog.length}** items). Found **${totalChanges.length}** change(s).`);
+        await interaction.editReply(`✅ Scanned Dev catalog (**${catalog.length}** items). Found **${changes.length}** change(s).`);
     } catch (e) {
         await interaction.editReply(`❌ Error checking Dev catalog: ${e.message}`);
     }
@@ -635,7 +621,6 @@ async function sendDevChanges(changes) {
 
     for (const change of changes) {
         let embed;
-        let files = [];
 
         switch (change.type) {
             case 'dev_new_item': {
@@ -674,30 +659,12 @@ async function sendDevChanges(changes) {
                 embed.setTitle('Dev bundle changed');
                 break;
             }
-            case 'dev_title_data_new': {
-                const res = buildTitleDataEmbed('New dev title data key', change.key, null, change.newValue);
-                embed = res.embed;
-                files = res.files;
-                break;
-            }
-            case 'dev_title_data_removed': {
-                const res = buildTitleDataEmbed('Dev title data key removed', change.key, change.oldValue, null);
-                embed = res.embed;
-                files = res.files;
-                break;
-            }
-            case 'dev_title_data_changed': {
-                const res = buildTitleDataEmbed('Dev title data value changed', change.key, change.oldValue, change.newValue);
-                embed = res.embed;
-                files = res.files;
-                break;
-            }
             default:
                 continue;
         }
 
         if (embed) {
-            await sendToSpecificChannel(targetChannel, embed, files);
+            await sendToSpecificChannel(targetChannel, embed);
             await sleep(1200);
         }
     }
