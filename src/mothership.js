@@ -51,7 +51,7 @@ async function authenticateMothership(isDev = false) {
     const baseHeaders = {
         'accept': '*/*',
         'user-agent': 'UnityPlayer/6000.2.9f1 (UnityWebRequest/1.0, libcurl/8.10.1-DEV)',
-        'x-mothership-sdk-version': 'v2026.5.18-1',
+        'x-mothership-sdk-version': 'v2026.4.8-1',
         'x-mothership-title-id': TITLE_ID,
         'x-mothership-env-id': config.envId,
         'x-mothership-deployment-id': config.deploymentId,
@@ -75,41 +75,52 @@ async function authenticateMothership(isDev = false) {
 
     const nonce = beginRes.data.Nonce;
 
-    // Step 2: Get Steam auth ticket
+    // Step 2: Get Steam auth tickets (Try AuthSessionTicket, then EncryptedAppTicket)
     await steam.login();
-    const steamTicketHex = await steam.getAuthTicket();
 
-    // Step 3: Complete Steam auth
-    const completePayload = JSON.stringify({
-        Nonce: nonce,
-        SteamTicket: steamTicketHex,
-    });
+    const ticketAttempts = [];
+    try {
+        const ticket1 = await steam.getAuthTicket();
+        ticketAttempts.push(ticket1);
+    } catch { }
 
-    const completeHeaders = Object.assign({}, baseHeaders, {
-        'content-type': 'application/json',
-        'content-length': Buffer.byteLength(completePayload),
-    });
+    try {
+        const ticket2 = await steam.getEncryptedAppTicket(nonce);
+        ticketAttempts.push(ticket2);
+    } catch { }
 
-    const completeRes = await httpsReq({
-        hostname: `${TITLE_ID}.prod.aa-mothership.com`,
-        path: '/v2/player/client/auth/complete/STEAM',
-        method: 'POST',
-        headers: completeHeaders,
-        timeout: 10000,
-    }, completePayload);
+    for (const steamTicketHex of ticketAttempts) {
+        const completePayload = JSON.stringify({
+            Nonce: nonce,
+            SteamTicket: steamTicketHex,
+        });
 
-    if (completeRes.data && completeRes.data.Token) {
-        const token = completeRes.data.Token;
-        if (isDev) {
-            cachedDevToken = token;
-        } else {
-            cachedProdToken = token;
+        const completeHeaders = Object.assign({}, baseHeaders, {
+            'content-type': 'application/json',
+            'content-length': Buffer.byteLength(completePayload),
+        });
+
+        const completeRes = await httpsReq({
+            hostname: `${TITLE_ID}.prod.aa-mothership.com`,
+            path: '/v2/player/client/auth/complete/STEAM',
+            method: 'POST',
+            headers: completeHeaders,
+            timeout: 10000,
+        }, completePayload);
+
+        if (completeRes.data && completeRes.data.Token) {
+            const token = completeRes.data.Token;
+            if (isDev) {
+                cachedDevToken = token;
+            } else {
+                cachedProdToken = token;
+            }
+            console.log(`[Mothership] Authenticated successfully with Mothership (${isDev ? 'DEV' : 'PROD'}). PlayerId: ${completeRes.data.PlayerId}`);
+            return token;
         }
-        console.log(`[Mothership] Authenticated successfully with Mothership (${isDev ? 'DEV' : 'PROD'}). PlayerId: ${completeRes.data.PlayerId}`);
-        return token;
-    } else {
-        throw new Error(`Mothership auth completion failed (${completeRes.status}): ${JSON.stringify(completeRes.data || completeRes.raw)}`);
     }
+
+    throw new Error(`Mothership auth completion failed after trying all ticket variants.`);
 }
 
 /**
@@ -131,7 +142,7 @@ async function fetchMothershipTitleData(isDev = false, retry = true) {
         'x-mothership-accept-language': 'en',
         'x-mothership-deployment-id': config.deploymentId,
         'x-mothership-env-id': config.envId,
-        'x-mothership-sdk-version': 'v2026.5.18-1',
+        'x-mothership-sdk-version': 'v2026.4.8-1',
         'x-mothership-session-id': sessionId,
         'x-mothership-title-id': TITLE_ID,
         'x-mothership-token': token,

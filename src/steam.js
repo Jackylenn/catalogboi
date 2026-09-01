@@ -45,6 +45,12 @@ function login() {
                     clearTimeout(reconnectTimer);
                     reconnectTimer = null;
                 }
+
+                // Register game session so Steam knows the client is running Gorilla Tag (1533390)
+                try {
+                    client.gamesPlayed([Number(config.steam.appId) || 1533390]);
+                } catch { }
+
                 resolve(client);
             });
 
@@ -140,7 +146,20 @@ async function getAuthTicket() {
     }
 }
 
+/**
+ * Get an encrypted app ticket (optionally with nonce as userdata).
+ */
+async function getEncryptedAppTicket(nonce) {
+    if (!client || !isLoggedIn) {
+        await login();
+    }
+    const userData = nonce ? Buffer.from(nonce, 'utf8') : Buffer.alloc(0);
+    const res = await client.createEncryptedAppTicket(config.steam.appId, userData);
+    return res.encryptedAppTicket.toString('hex');
+}
+
 function getClient() { return client; }
 function getIsLoggedIn() { return isLoggedIn; }
 
-module.exports = { login, getAuthTicket, getClient, getIsLoggedIn };
+module.exports = { login, getAuthTicket, getEncryptedAppTicket, getClient, getIsLoggedIn };
+
