@@ -7,6 +7,7 @@ const CATALOG_BASELINE = path.join(DATA_DIR, 'catalog_baseline.json');
 const TITLE_DATA_BASELINE = path.join(DATA_DIR, 'title_data_baseline.json');
 const UPCOMING_COSMETICS = path.join(DATA_DIR, 'upcoming_cosmetics.json');
 const DEV_CATALOG_BASELINE = path.join(DATA_DIR, 'dev_catalog_baseline.json');
+const DEV_TITLE_DATA_BASELINE = path.join(DATA_DIR, 'dev_title_data_baseline.json');
 
 // Ensure data directory exists
 if (!fs.existsSync(DATA_DIR)) {
@@ -630,6 +631,7 @@ module.exports = {
     diffCatalog,
     diffTitleData,
     diffDevCatalog,
+    diffDevTitleData,
     getUpcomingCosmetics,
     loadItemNamesMap,
     getItemDisplayName,

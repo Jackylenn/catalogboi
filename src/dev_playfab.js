@@ -144,6 +144,11 @@ async function getDevCatalogItems() {
     return data.Catalog || [];
 }
 
+async function getDevTitleData() {
+    const data = await devPlayfabRequest('/Client/GetTitleData', {});
+    return data.Data || {};
+}
+
 function getDevSessionTicket() { return devSessionTicket; }
 function clearDevSession() { devSessionTicket = null; }
 
@@ -151,6 +156,7 @@ module.exports = {
     loginWithSteam,
     ensureAuthenticated,
     getDevCatalogItems,
+    getDevTitleData,
     getDevSessionTicket,
     clearDevSession,
     DEV_TITLE_ID,

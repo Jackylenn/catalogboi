@@ -201,21 +201,30 @@ async function runCheck() {
             console.error('[Check] CCU check error:', e.message);
         }
 
-        // 5. Fetch & diff Dev PlayFab Catalog (TitleId: 195C0)
-        console.log('[Check] Checking Dev PlayFab catalog (195C0)...');
+        // 5. Fetch & diff Dev PlayFab Catalog & Title Data (TitleId: 195C0)
+        console.log('[Check] Checking Dev PlayFab catalog & title data (195C0)...');
         try {
             const devPlayfab = require('./dev_playfab');
-            const { diffDevCatalog } = require('./tracker');
+            const { diffDevCatalog, diffDevTitleData } = require('./tracker');
             const { sendDevChanges } = require('./discord');
 
             const devCatalog = await devPlayfab.getDevCatalogItems();
             const devCatalogChanges = diffDevCatalog(devCatalog);
 
-            if (devCatalogChanges.length > 0) {
-                console.log(`[Check] ${devCatalogChanges.length} Dev catalog change(s) detected!`);
-                await sendDevChanges(devCatalogChanges);
+            let devTitleChanges = [];
+            try {
+                const devTd = await devPlayfab.getDevTitleData();
+                devTitleChanges = diffDevTitleData(devTd);
+            } catch (e) {
+                console.warn('[Check] Failed to fetch dev title data:', e.message);
+            }
+
+            const totalDevChanges = [...devCatalogChanges, ...devTitleChanges];
+            if (totalDevChanges.length > 0) {
+                console.log(`[Check] ${totalDevChanges.length} Dev change(s) detected!`);
+                await sendDevChanges(totalDevChanges);
             } else {
-                console.log('[Check] No Dev catalog changes.');
+                console.log('[Check] No Dev changes.');
             }
         } catch (e) {
             console.error('[Check] Dev PlayFab check error:', e.message);
