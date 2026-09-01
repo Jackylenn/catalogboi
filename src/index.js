@@ -156,14 +156,13 @@ async function runCheck() {
         try {
             const { fetchMothershipTitleData } = require('./mothership');
             titleData = await fetchMothershipTitleData();
-            console.log(`[Check] Mothership Title data: ${Object.keys(titleData).length} keys`);
-        } catch (msErr) {
-            console.warn('[Check] Mothership Title Data error, trying PlayFab fallback:', msErr.message);
+            console.log(`[Check] Title data (Mothership): ${Object.keys(titleData).length} keys`);
+        } catch {
             try {
                 titleData = await playfab.getTitleData();
-                console.log(`[Check] PlayFab Title data: ${Object.keys(titleData).length} keys`);
+                console.log(`[Check] Title data (PlayFab): ${Object.keys(titleData).length} keys`);
             } catch (pfErr) {
-                console.error('[Check] Failed to fetch title data from both sources:', pfErr.message);
+                console.error('[Check] Failed to fetch title data:', pfErr.message);
                 titleData = null;
             }
         }
