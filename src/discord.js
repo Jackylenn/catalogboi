@@ -898,6 +898,63 @@ async function handleRemove(interaction) {
     await updateStatusMessage();
 }
 
+async function handleCheckDevCatalog(interaction) {
+    await interaction.deferReply();
+    try {
+        const { getDevCatalogItems, getDevTitleData } = require('./dev_playfab');
+        const { diffDevCatalog, diffDevTitleData } = require('./tracker');
+        const catalog = await getDevCatalogItems();
+        const changes = diffDevCatalog(catalog);
+
+        let titleChanges = [];
+        try {
+            const { fetchMothershipTitleData } = require('./mothership');
+            let td = null;
+            try {
+                td = await fetchMothershipTitleData(true);
+            } catch {
+                td = await getDevTitleData();
+            }
+            if (td) titleChanges = diffDevTitleData(td);
+        } catch { }
+
+        const totalChanges = [...changes, ...titleChanges];
+        if (totalChanges.length > 0) {
+            await sendDevChanges(totalChanges);
+        }
+        await interaction.editReply(`✅ Scanned Dev catalog (**${catalog.length}** items). Found **${totalChanges.length}** change(s).`);
+    } catch (e) {
+        await interaction.editReply(`❌ Error checking Dev catalog: ${e.message}`);
+    }
+}
+
+async function handleCheckCatalog(interaction) {
+    await interaction.deferReply();
+    try {
+        const { getCatalogItems } = require('./playfab');
+        const { diffCatalog } = require('./tracker');
+        const catalog = await getCatalogItems();
+        const changes = diffCatalog(catalog);
+        if (changes.length > 0) {
+            await sendChanges(changes);
+        }
+        await interaction.editReply(`✅ Scanned Production catalog (**${catalog.length}** items). Found **${changes.length}** change(s).`);
+    } catch (e) {
+        await interaction.editReply(`❌ Error checking Production catalog: ${e.message}`);
+    }
+}
+
+async function handleCheckShopify(interaction) {
+    await interaction.deferReply();
+    try {
+        const { checkShopify } = require('./shopify');
+        const changes = await checkShopify(client);
+        await interaction.editReply(`✅ Scanned Shopify store. Found **${changes ? changes.length : 0}** change(s).`);
+    } catch (e) {
+        await interaction.editReply(`❌ Error checking Shopify: ${e.message}`);
+    }
+}
+
 async function handleBuy(interaction) {
     await interaction.deferReply({ ephemeral: true });
 

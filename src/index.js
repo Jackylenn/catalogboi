@@ -220,8 +220,16 @@ async function runCheck() {
 
             let devTitleChanges = [];
             try {
-                const devTd = await devPlayfab.getDevTitleData();
-                devTitleChanges = diffDevTitleData(devTd);
+                const { fetchMothershipTitleData } = require('./mothership');
+                let devTd = null;
+                try {
+                    devTd = await fetchMothershipTitleData(true);
+                } catch (msErr) {
+                    devTd = await devPlayfab.getDevTitleData();
+                }
+                if (devTd) {
+                    devTitleChanges = diffDevTitleData(devTd);
+                }
             } catch (e) {
                 console.warn('[Check] Failed to fetch dev title data:', e.message);
             }
