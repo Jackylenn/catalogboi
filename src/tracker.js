@@ -618,7 +618,7 @@ function clearUpcomingCosmetics() {
 }
 
 function resetBaselines() {
-    for (const f of [CATALOG_BASELINE, TITLE_DATA_BASELINE, UPCOMING_COSMETICS]) {
+    for (const f of [CATALOG_BASELINE, TITLE_DATA_BASELINE, UPCOMING_COSMETICS, DEV_CATALOG_BASELINE]) {
         if (fs.existsSync(f)) {
             fs.unlinkSync(f);
             console.log(`[Tracker] Deleted ${path.basename(f)}`);
