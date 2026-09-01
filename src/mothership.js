@@ -7,7 +7,7 @@ const TITLE_ID = process.env.MOTHERSHIP_TITLE_ID || 'f3e9fb19';
 
 const PROD_CONFIG = {
     envId: process.env.MOTHERSHIP_ENV_ID || '7f3a99dd-5598-4725-98cf-6538d28feb9f',
-    deploymentId: process.env.MOTHERSHIP_DEPLOYMENT_ID || 'abadf120-bb2f-48e2-b154-978c8fc1eac2',
+    deploymentId: process.env.MOTHERSHIP_DEPLOYMENT_ID || 'd28a4305-7811-4ff2-90d8-908992a639f7',
 };
 
 const DEV_CONFIG = {
@@ -51,7 +51,7 @@ async function authenticateMothership(isDev = false) {
     const baseHeaders = {
         'accept': '*/*',
         'user-agent': 'UnityPlayer/6000.2.9f1 (UnityWebRequest/1.0, libcurl/8.10.1-DEV)',
-        'x-mothership-sdk-version': 'v2026.4.8-1',
+        'x-mothership-sdk-version': 'v2026.5.18-1',
         'x-mothership-title-id': TITLE_ID,
         'x-mothership-env-id': config.envId,
         'x-mothership-deployment-id': config.deploymentId,
@@ -65,7 +65,7 @@ async function authenticateMothership(isDev = false) {
         hostname: `${TITLE_ID}.prod.aa-mothership.com`,
         path: '/v2/player/client/auth/begin/STEAM',
         method: 'GET',
-        headers: baseHeaders,
+        headers: Object.assign({}, baseHeaders, { 'content-type': 'application/octet-stream' }),
         timeout: 10000,
     });
 
@@ -75,7 +75,7 @@ async function authenticateMothership(isDev = false) {
 
     const nonce = beginRes.data.Nonce;
 
-    // Step 2: Get Steam auth tickets (Try AuthSessionTicket, then EncryptedAppTicket)
+    // Step 2: Get Steam auth tickets
     await steam.login();
 
     const ticketAttempts = [];
@@ -142,7 +142,7 @@ async function fetchMothershipTitleData(isDev = false, retry = true) {
         'x-mothership-accept-language': 'en',
         'x-mothership-deployment-id': config.deploymentId,
         'x-mothership-env-id': config.envId,
-        'x-mothership-sdk-version': 'v2026.4.8-1',
+        'x-mothership-sdk-version': 'v2026.5.18-1',
         'x-mothership-session-id': sessionId,
         'x-mothership-title-id': TITLE_ID,
         'x-mothership-token': token,
