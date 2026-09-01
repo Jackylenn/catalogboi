@@ -201,6 +201,35 @@ async function runCheck() {
             console.error('[Check] CCU check error:', e.message);
         }
 
+        // 5. Fetch & diff Dev PlayFab Catalog (TitleId: 195C0)
+        console.log('[Check] Checking Dev PlayFab catalog (195C0)...');
+        try {
+            const devPlayfab = require('./dev_playfab');
+            const { diffDevCatalog, diffDevTitleData } = require('./tracker');
+            const { sendDevChanges } = require('./discord');
+
+            const devCatalog = await devPlayfab.getDevCatalogItems();
+            const devCatalogChanges = diffDevCatalog(devCatalog);
+
+            let devTitleChanges = [];
+            try {
+                const devTd = await devPlayfab.getDevTitleData();
+                devTitleChanges = diffDevTitleData(devTd);
+            } catch (e) {
+                console.warn('[Check] Failed to fetch dev title data:', e.message);
+            }
+
+            const totalDevChanges = [...devCatalogChanges, ...devTitleChanges];
+            if (totalDevChanges.length > 0) {
+                console.log(`[Check] ${totalDevChanges.length} Dev catalog change(s) detected!`);
+                await sendDevChanges(totalDevChanges);
+            } else {
+                console.log('[Check] No Dev catalog changes.');
+            }
+        } catch (e) {
+            console.error('[Check] Dev PlayFab check error:', e.message);
+        }
+
         updateCheckStats(catalog.length);
         await updateStatusMessage();
         console.log(`[Check] Done. Next check in ${config.pollIntervalSeconds}s.`);

@@ -21,6 +21,7 @@ module.exports = {
         cosmeticsControllerChannelId: process.env.COSMETICS_CONTROLLER_CHANNEL_ID || process.env.COSMETIC_CONTROLLER_CHANNEL_ID,
         shopifyChannelId: process.env.SHOPIFY_CHANNEL_ID || process.env.STORE_CHANNEL_ID || process.env.MERCH_CHANNEL_ID,
         ccuChannelId: process.env.CCU_CHANNEL_ID,
+        devCatalogChannelId: process.env.DEV_CATALOG_CHANNEL_ID || process.env.DEV_CHANNEL_ID,
     },
     steam: {
         username: process.env.STEAM_USERNAME,
@@ -29,6 +30,7 @@ module.exports = {
     },
     playfab: {
         titleId: process.env.PLAYFAB_TITLE_ID || '63FDD',
+        devTitleId: process.env.DEV_PLAYFAB_TITLE_ID || '195C0',
     },
     shopify: {
         domain: process.env.SHOPIFY_DOMAIN || 'another-axiom-x-juniper.myshopify.com',

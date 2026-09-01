@@ -18,6 +18,7 @@ let statusChannel = null;
 let cosmeticsControllerChannel = null;
 let shopifyChannel = null;
 let ccuChannel = null;
+let devCatalogChannel = null;
 let startTime = Date.now();
 let lastCheckTime = null;
 let lastCheckItemCount = 0;
@@ -100,6 +101,7 @@ async function initBot() {
             cosmeticsControllerChannel = (await fetchChan(config.discord.cosmeticsControllerChannelId, 'CosmeticsController')) || catalogChannel;
             shopifyChannel = (await fetchChan(config.discord.shopifyChannelId, 'Shopify Merch')) || newItemsChannel || catalogChannel;
             ccuChannel = (await fetchChan(config.discord.ccuChannelId, 'CCU Tracker')) || catalogChannel;
+            devCatalogChannel = (await fetchChan(config.discord.devCatalogChannelId, 'Dev Catalog')) || catalogChannel;
 
             await registerCommands();
             resolve();
@@ -127,6 +129,12 @@ async function registerCommands() {
         new SlashCommandBuilder()
             .setName('clearlist')
             .setDescription('Clear the entire upcoming cosmetics list'),
+        new SlashCommandBuilder()
+            .setName('checkdev')
+            .setDescription('Force an immediate scan of the Dev PlayFab catalog (195C0)'),
+        new SlashCommandBuilder()
+            .setName('checkdevcatalog')
+            .setDescription('Force an immediate scan of the Dev PlayFab catalog (195C0)'),
         new SlashCommandBuilder()
             .setName('checkcatalog')
             .setDescription('Force an immediate scan of the PlayFab catalog for new items and price changes'),
@@ -232,6 +240,8 @@ async function handleInteraction(interaction) {
         await handleCheckCCU(interaction);
     } else if (interaction.commandName === 'shopify') {
         await handleShopify(interaction);
+    } else if (interaction.commandName === 'checkdev' || interaction.commandName === 'checkdevcatalog') {
+        await handleCheckDevCatalog(interaction);
     } else if (interaction.commandName === 'checkcatalog') {
         await handleCheckCatalog(interaction);
     } else if (interaction.commandName === 'checkshopify') {
@@ -311,6 +321,28 @@ async function handlePrefixCommand(message) {
         }
 
         await message.reply({ embeds: [embed] });
+    } else if (cmd === 'checkdev' || cmd === 'checkdevcatalog') {
+        const replyMsg = await message.reply('🔄 Scanning Dev PlayFab catalog (195C0)...');
+        try {
+            const { getDevCatalogItems, getDevTitleData } = require('./dev_playfab');
+            const { diffDevCatalog, diffDevTitleData } = require('./tracker');
+            const catalog = await getDevCatalogItems();
+            const changes = diffDevCatalog(catalog);
+
+            let titleChanges = [];
+            try {
+                const td = await getDevTitleData();
+                titleChanges = diffDevTitleData(td);
+            } catch { }
+
+            const totalChanges = [...changes, ...titleChanges];
+            if (totalChanges.length > 0) {
+                await sendDevChanges(totalChanges);
+            }
+            await replyMsg.edit(`✅ Scanned Dev catalog (**${catalog.length}** items). Found **${totalChanges.length}** change(s).`);
+        } catch (e) {
+            await replyMsg.edit(`❌ Error checking Dev catalog: ${e.message}`);
+        }
     } else if (cmd === 'checkcatalog') {
         const replyMsg = await message.reply('🔄 Scanning PlayFab catalog for new items...');
         try {
@@ -571,6 +603,104 @@ async function handleShopify(interaction) {
     }
 
     await interaction.reply({ embeds: [embed] });
+}
+
+async function handleCheckDevCatalog(interaction) {
+    await interaction.deferReply();
+    try {
+        const { getDevCatalogItems, getDevTitleData } = require('./dev_playfab');
+        const { diffDevCatalog, diffDevTitleData } = require('./tracker');
+        const catalog = await getDevCatalogItems();
+        const changes = diffDevCatalog(catalog);
+
+        let titleChanges = [];
+        try {
+            const td = await getDevTitleData();
+            titleChanges = diffDevTitleData(td);
+        } catch { }
+
+        const totalChanges = [...changes, ...titleChanges];
+        if (totalChanges.length > 0) {
+            await sendDevChanges(totalChanges);
+        }
+        await interaction.editReply(`✅ Scanned Dev catalog (**${catalog.length}** items). Found **${totalChanges.length}** change(s).`);
+    } catch (e) {
+        await interaction.editReply(`❌ Error checking Dev catalog: ${e.message}`);
+    }
+}
+
+async function sendDevChanges(changes) {
+    if (!changes || changes.length === 0) return;
+    const targetChannel = devCatalogChannel || catalogChannel;
+
+    for (const change of changes) {
+        let embed;
+        let files = [];
+
+        switch (change.type) {
+            case 'dev_new_item': {
+                const item = change.item;
+                embed = new EmbedBuilder()
+                    .setTitle('New item added to dev catalog')
+                    .setDescription(`**${item.DisplayName || item.ItemId}**\nID: \`${item.ItemId}\``)
+                    .setColor(0x2ECC71);
+                if (item.Description) embed.addFields({ name: 'Description', value: item.Description, inline: false });
+                embed.addFields({ name: 'Price', value: getPriceString(item), inline: false });
+                break;
+            }
+            case 'dev_removed_item':
+                embed = new EmbedBuilder()
+                    .setTitle('Item removed from dev catalog')
+                    .setDescription(`**${change.displayName}**\nID: \`${change.item.ItemId}\``)
+                    .setColor(0xE74C3C);
+                break;
+            case 'dev_name_change':
+                embed = new EmbedBuilder()
+                    .setTitle('Dev display name changed')
+                    .setDescription(`ID: \`${change.item.ItemId}\``)
+                    .setColor(0xF1C40F)
+                    .addFields(
+                        { name: 'Old name', value: change.oldName || 'None', inline: true },
+                        { name: 'New name', value: change.newName || 'None', inline: true },
+                    );
+                break;
+            case 'dev_price_change': {
+                embed = buildPriceChangeEmbed(change);
+                embed.setTitle('Dev price changed');
+                break;
+            }
+            case 'dev_bundle_change': {
+                embed = buildBundleChangeEmbed(change);
+                embed.setTitle('Dev bundle changed');
+                break;
+            }
+            case 'dev_title_data_new': {
+                const res = buildTitleDataEmbed('New dev title data key', change.key, null, change.newValue);
+                embed = res.embed;
+                files = res.files;
+                break;
+            }
+            case 'dev_title_data_removed': {
+                const res = buildTitleDataEmbed('Dev title data key removed', change.key, change.oldValue, null);
+                embed = res.embed;
+                files = res.files;
+                break;
+            }
+            case 'dev_title_data_changed': {
+                const res = buildTitleDataEmbed('Dev title data value changed', change.key, change.oldValue, change.newValue);
+                embed = res.embed;
+                files = res.files;
+                break;
+            }
+            default:
+                continue;
+        }
+
+        if (embed) {
+            await sendToSpecificChannel(targetChannel, embed, files);
+            await sleep(1200);
+        }
+    }
 }
 
 async function handleCheckCatalog(interaction) {
@@ -1351,4 +1481,4 @@ function updateCheckStats(itemCount) {
 }
 
 function getClient() { return client; }
-module.exports = { initBot, sendChanges, sendCCUChange, updateCheckStats, updateListMessage, updateStatusMessage, sleep, getClient };
+module.exports = { initBot, sendChanges, sendDevChanges, sendCCUChange, updateCheckStats, updateListMessage, updateStatusMessage, sleep, getClient };
