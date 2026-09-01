@@ -150,15 +150,22 @@ async function runCheck() {
             console.log('[Check] No catalog changes.');
         }
 
-        // 2. Fetch & diff PlayFab Title Data
+        // 2. Fetch & diff Title Data (Mothership -> Fallback to PlayFab)
         console.log('[Check] Fetching title data...');
-        let titleData;
+        let titleData = null;
         try {
-            titleData = await playfab.getTitleData();
-            console.log(`[Check] Title data: ${Object.keys(titleData).length} keys`);
-        } catch (e) {
-            console.error('[Check] Failed to fetch title data:', e.message);
-            titleData = null;
+            const { fetchMothershipTitleData } = require('./mothership');
+            titleData = await fetchMothershipTitleData();
+            console.log(`[Check] Mothership Title data: ${Object.keys(titleData).length} keys`);
+        } catch (msErr) {
+            console.warn('[Check] Mothership Title Data error, trying PlayFab fallback:', msErr.message);
+            try {
+                titleData = await playfab.getTitleData();
+                console.log(`[Check] PlayFab Title data: ${Object.keys(titleData).length} keys`);
+            } catch (pfErr) {
+                console.error('[Check] Failed to fetch title data from both sources:', pfErr.message);
+                titleData = null;
+            }
         }
 
         // Diff title data
