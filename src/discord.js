@@ -151,6 +151,14 @@ async function registerCommands() {
             .setName('checkshopify')
             .setDescription('Force an immediate scan of the Shopify merch store for updates'),
         new SlashCommandBuilder()
+            .setName('updatemothershiptoken')
+            .setDescription('Update the Mothership Title Data access token')
+            .addStringOption(opt =>
+                opt.setName('token')
+                    .setDescription('The new Mothership token (JWT)')
+                    .setRequired(true)
+            ),
+        new SlashCommandBuilder()
             .setName('checktitledata')
             .setDescription('Upload a TitleDataCache.json dump to compare and update Title Data baseline')
             .addAttachmentOption(opt =>
@@ -246,6 +254,8 @@ async function handleInteraction(interaction) {
         await handleCheckCatalog(interaction);
     } else if (interaction.commandName === 'checkshopify') {
         await handleCheckShopify(interaction);
+    } else if (interaction.commandName === 'updatemothershiptoken') {
+        await handleUpdateMothershipToken(interaction);
     } else if (interaction.commandName === 'checktitledata') {
         await handleCheckTitleData(interaction);
     } else if (interaction.commandName === 'checkcosmeticscontroller') {
@@ -267,7 +277,54 @@ async function handlePrefixCommand(message) {
     const parts = fullContent.split(/\s+/);
     const cmd = parts[0].toLowerCase();
 
-    if (cmd === 'clearlist') {
+    if (cmd === 'updatemothershiptoken') {
+        const token = parts.slice(1).join(' ').trim();
+        if (!token) {
+            return message.reply('❌ Please provide the new Mothership token:\n`?updatemothershiptoken <token>`');
+        }
+        const replyMsg = await message.reply('🔄 Validating Mothership token with Gateway...');
+        try {
+            const { validateMothershipToken, setMothershipToken, fetchMothershipTitleData } = require('./mothership');
+            const { diffTitleData } = require('./tracker');
+
+            const val = await validateMothershipToken(token);
+            if (!val.success) {
+                return replyMsg.edit({
+                    content: '',
+                    embeds: [
+                        new EmbedBuilder()
+                            .setTitle('❌ Mothership Token Invalid')
+                            .setDescription(`The token was rejected by Mothership:
+\`\`\`${val.error}\`\`\``)
+                            .setColor(0xE74C3C)
+                    ]
+                });
+            }
+
+            setMothershipToken(token);
+            const titleData = await fetchMothershipTitleData();
+            const changes = diffTitleData(titleData);
+            if (changes.length > 0) {
+                await sendChanges(changes);
+            }
+
+            return replyMsg.edit({
+                content: '',
+                embeds: [
+                    new EmbedBuilder()
+                        .setTitle('✅ Mothership Token Updated!')
+                        .setDescription(`Successfully authenticated with Mothership!
+
+• **Keys Loaded**: ${val.count} keys
+• **Changes Detected**: ${changes.length}
+• **Status**: Active & saved to storage`)
+                        .setColor(0x2ECC71)
+                ]
+            });
+        } catch (e) {
+            return replyMsg.edit(`❌ Error updating token: ${e.message}`);
+        }
+    } else if (cmd === 'clearlist') {
         clearUpcomingCosmetics();
         await message.reply('Upcoming cosmetics list cleared!');
         await updateListMessage();
@@ -1539,3 +1596,53 @@ function updateCheckStats(itemCount) {
 
 function getClient() { return client; }
 module.exports = { initBot, sendChanges, sendDevChanges, sendCCUChange, updateCheckStats, updateListMessage, updateStatusMessage, sleep, getClient };
+async function handleUpdateMothershipToken(interaction) {
+    await interaction.deferReply();
+    const token = interaction.options.getString('token');
+    try {
+        const { validateMothershipToken, setMothershipToken, fetchMothershipTitleData } = require('./mothership');
+        const { diffTitleData } = require('./tracker');
+
+        const val = await validateMothershipToken(token);
+        if (!val.success) {
+            return interaction.editReply({
+                embeds: [
+                    new EmbedBuilder()
+                        .setTitle('❌ Mothership Token Invalid')
+                        .setDescription(`The token was rejected by Mothership:
+\`\`\`${val.error}\`\`\``)
+                        .setColor(0xE74C3C)
+                ]
+            });
+        }
+
+        setMothershipToken(token);
+        const titleData = await fetchMothershipTitleData();
+        const changes = diffTitleData(titleData);
+        if (changes.length > 0) {
+            await sendChanges(changes);
+        }
+
+        return interaction.editReply({
+            embeds: [
+                new EmbedBuilder()
+                    .setTitle('✅ Mothership Token Updated!')
+                    .setDescription(`Successfully authenticated with Mothership!
+
+• **Keys Loaded**: ${val.count} keys
+• **Changes Detected**: ${changes.length}
+• **Status**: Active & saved to storage`)
+                    .setColor(0x2ECC71)
+            ]
+        });
+    } catch (e) {
+        return interaction.editReply({
+            embeds: [
+                new EmbedBuilder()
+                    .setTitle('❌ Error Updating Token')
+                    .setDescription(`\`\`\`${e.message}\`\`\``)
+                    .setColor(0xE74C3C)
+            ]
+        });
+    }
+}

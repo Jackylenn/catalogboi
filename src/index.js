@@ -153,11 +153,13 @@ async function runCheck() {
         // 2. Fetch & diff Title Data (Mothership -> Fallback to PlayFab)
         console.log('[Check] Fetching title data...');
         let titleData = null;
+        let isTdFallback = false;
         try {
             const { fetchMothershipTitleData } = require('./mothership');
             titleData = await fetchMothershipTitleData();
             console.log(`[Check] Title data (Mothership): ${Object.keys(titleData).length} keys`);
         } catch {
+            isTdFallback = true;
             try {
                 titleData = await playfab.getTitleData();
                 console.log(`[Check] Title data (PlayFab): ${Object.keys(titleData).length} keys`);
@@ -169,7 +171,7 @@ async function runCheck() {
 
         // Diff title data
         if (titleData) {
-            const titleChanges = diffTitleData(titleData);
+            const titleChanges = diffTitleData(titleData, isTdFallback);
             if (titleChanges.length > 0) {
                 console.log(`[Check] ${titleChanges.length} title data change(s) detected!`);
                 await sendChanges(titleChanges);
@@ -221,13 +223,15 @@ async function runCheck() {
             try {
                 const { fetchMothershipTitleData } = require('./mothership');
                 let devTd = null;
+                let isDevTdFallback = false;
                 try {
                     devTd = await fetchMothershipTitleData(true);
                 } catch (msErr) {
+                    isDevTdFallback = true;
                     devTd = await devPlayfab.getDevTitleData();
                 }
                 if (devTd) {
-                    devTitleChanges = diffDevTitleData(devTd);
+                    devTitleChanges = diffDevTitleData(devTd, isDevTdFallback);
                 }
             } catch (e) {
                 console.warn('[Check] Failed to fetch dev title data:', e.message);

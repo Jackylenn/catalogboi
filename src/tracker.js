@@ -227,7 +227,7 @@ function parseTitleDataInput(inputJson) {
 
 
 
-function diffTitleData(rawTitleData) {
+function diffTitleData(rawTitleData, isFallback = false) {
     const newTitleData = parseTitleDataInput(rawTitleData);
     const changes = [];
 
@@ -255,14 +255,16 @@ function diffTitleData(rawTitleData) {
             }
         }
 
-        // Removed keys
-        for (const key of oldKeys) {
-            if (!newKeys.has(key)) {
-                changes.push({
-                    type: 'title_data_removed',
-                    key,
-                    oldValue: oldTitleData[key],
-                });
+        // Removed keys (only if not in fallback mode)
+        if (!isFallback) {
+            for (const key of oldKeys) {
+                if (!newKeys.has(key)) {
+                    changes.push({
+                        type: 'title_data_removed',
+                        key,
+                        oldValue: oldTitleData[key],
+                    });
+                }
             }
         }
 
@@ -281,10 +283,11 @@ function diffTitleData(rawTitleData) {
         console.log(`[Tracker] Initial run - saving initial title data baseline (${Object.keys(newTitleData).length} keys).`);
     }
 
-    // Auto-update baseline
+    // Auto-update baseline (merge in fallback mode to preserve Mothership keys)
     try {
-        fs.writeFileSync(TITLE_DATA_BASELINE, JSON.stringify(newTitleData, null, 2));
-        console.log(`[Tracker] Title data baseline saved (${Object.keys(newTitleData).length} keys).`);
+        const toSave = isFallback && oldTitleData ? Object.assign({}, oldTitleData, newTitleData) : newTitleData;
+        fs.writeFileSync(TITLE_DATA_BASELINE, JSON.stringify(toSave, null, 2));
+        console.log(`[Tracker] Title data baseline saved (${Object.keys(toSave).length} keys).`);
     } catch (e) {
         console.error('[Tracker] Failed to save title data baseline:', e.message);
     }
