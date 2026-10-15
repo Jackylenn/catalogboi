@@ -23,6 +23,7 @@ let lastCheckItemCount = 0;
 // Store the message IDs so we can edit them in-place
 const LIST_MSG_PATH = path.join(__dirname, '..', 'data', 'list_message_id.txt');
 const STATUS_MSG_PATH = path.join(__dirname, '..', 'data', 'status_message_id.txt');
+const PRICED_LIST_MSG_PATH = path.join(__dirname, '..', 'data', 'priced_list_message_id.txt');
 
 // ─── Bot Setup ───────────────────────────────────────────────────
 
@@ -34,6 +35,52 @@ function formatUpcomingCosmeticLine(item) {
     const displayName = getItemDisplayName(item.ItemId, item.DisplayName);
     const nameSuffix = displayName ? ` (${displayName})` : '';
     return `${item.ItemId} - ${category} - ${priceStr}${nameSuffix}`;
+}
+
+function hasRealDisplayName(itemId, displayName) {
+    if (!displayName) return false;
+    const cleanName = displayName.trim().toUpperCase();
+    const cleanId = (itemId || '').trim().toUpperCase();
+    const cleanIdNoDot = cleanId.replace(/\./g, '');
+    if (!cleanName || cleanName === cleanId || cleanName === cleanIdNoDot) {
+        return false;
+    }
+    return true;
+}
+
+function formatPricedCosmeticLine(item) {
+    if (!item) return null;
+
+    let price = null;
+    if (item.VirtualCurrencyPrices && typeof item.VirtualCurrencyPrices === 'object') {
+        const values = Object.values(item.VirtualCurrencyPrices);
+        if (values.length > 0) price = values[0];
+    }
+    if (price === null && item.RealCurrencyPrices && typeof item.RealCurrencyPrices === 'object') {
+        const values = Object.values(item.RealCurrencyPrices);
+        if (values.length > 0) price = values[0];
+    }
+
+    if (price === null || price === undefined) return null;
+    const priceNum = parseInt(price, 10);
+    if (isNaN(priceNum)) return null;
+
+    const category = getItemCategory(item.ItemId, priceNum);
+    const priceStr = priceNum === 0 ? 'Free' : `${priceNum} Shiny Rocks`;
+    const displayName = getItemDisplayName(item.ItemId, item.DisplayName);
+    const nameSuffix = hasRealDisplayName(item.ItemId, displayName) ? ` (${displayName})` : '';
+
+    return `- ${category} - ${priceStr}${nameSuffix}`;
+}
+
+function buildPricedListMessageContent(items) {
+    const pricedLines = (items || [])
+        .map(formatPricedCosmeticLine)
+        .filter(Boolean);
+
+    const header = `<@&1354845780074037389>\na lot of ping but\n\n# HALLOWEEN PT2 PRICES\n\n`;
+    const body = pricedLines.length > 0 ? pricedLines.join('\n') : '*No priced cosmetics currently tracked.*';
+    return header + body;
 }
 
 async function initBot() {
@@ -187,6 +234,9 @@ async function registerCommands() {
                     .setDescription('Force purchase attempt even if item is already cached as owned')
                     .setRequired(false)
             ),
+        new SlashCommandBuilder()
+            .setName('priced')
+            .setDescription('View the upcoming cosmetics priced-only list (# HALLOWEEN PT2 PRICES)'),
     ];
 
     const rest = new REST({ version: '10' }).setToken(config.discord.token);
@@ -240,6 +290,8 @@ async function handleInteraction(interaction) {
         await handleCheckOwned(interaction);
     } else if (interaction.commandName === 'autobuy') {
         await handleAutoBuyCommand(interaction);
+    } else if (interaction.commandName === 'priced') {
+        await handlePriced(interaction);
     }
 }
 
@@ -490,6 +542,10 @@ async function handlePrefixCommand(message) {
         } catch (err) {
             await replyMsg.edit(`❌ Error running auto-buy scan: ${err.message}`);
         }
+    } else if (cmd === 'priced') {
+        const items = getUpcomingCosmetics();
+        const content = buildPricedListMessageContent(items);
+        await message.reply({ content, allowedMentions: { parse: [] } });
     }
 }
 
@@ -769,6 +825,12 @@ async function handleAutoBuyCommand(interaction) {
     }
 }
 
+async function handlePriced(interaction) {
+    const items = getUpcomingCosmetics();
+    const content = buildPricedListMessageContent(items);
+    await interaction.reply({ content, allowedMentions: { parse: [] } });
+}
+
 async function handleUpcoming(interaction) {
     const items = getUpcomingCosmetics();
     if (items.length === 0) {
@@ -901,9 +963,18 @@ function saveStatusMessageId(id) {
     }
 }
 
-// ─── Auto-Updating List Message ──────────────────────────────────
+// ─── Auto-Updating List Messages ─────────────────────────────────
 
 async function updateListMessage() {
+    await updateMainListMessage();
+    try {
+        await updatePricedListMessage();
+    } catch (e) {
+        console.error('[Discord] Error updating priced list message:', e.message);
+    }
+}
+
+async function updateMainListMessage() {
     if (!listChannel) {
         return;
     }
@@ -1006,6 +1077,60 @@ function saveListMessageId(id) {
         fs.writeFileSync(LIST_MSG_PATH, id);
     } catch (e) {
         console.error('[Discord] Failed to save list message ID:', e.message);
+    }
+}
+
+async function updatePricedListMessage() {
+    if (!listChannel) return;
+
+    const items = getUpcomingCosmetics();
+    const fullText = buildPricedListMessageContent(items);
+
+    const savedMsgId = loadPricedListMessageId();
+    if (savedMsgId) {
+        try {
+            const existingMsg = await listChannel.messages.fetch(savedMsgId);
+            if (existingMsg) {
+                await existingMsg.edit({ content: fullText, embeds: [] });
+                return;
+            }
+        } catch { }
+    }
+
+    // Check for existing bot message in channel to avoid duplicate creation on restarts
+    try {
+        const fetched = await listChannel.messages.fetch({ limit: 10 });
+        const existingBotMsg = fetched.find(m => m.author.id === client.user.id && m.content && m.content.includes('# HALLOWEEN PT2 PRICES'));
+        if (existingBotMsg) {
+            await existingBotMsg.edit({ content: fullText, embeds: [] });
+            savePricedListMessageId(existingBotMsg.id);
+            return;
+        }
+    } catch { }
+
+    try {
+        const msg = await listChannel.send({ content: fullText });
+        savePricedListMessageId(msg.id);
+        console.log('[Discord] Priced list message created.');
+    } catch (e) {
+        console.error('[Discord] Failed to send priced list message:', e.message);
+    }
+}
+
+function loadPricedListMessageId() {
+    try {
+        if (fs.existsSync(PRICED_LIST_MSG_PATH)) {
+            return fs.readFileSync(PRICED_LIST_MSG_PATH, 'utf8').trim();
+        }
+    } catch { }
+    return null;
+}
+
+function savePricedListMessageId(id) {
+    try {
+        fs.writeFileSync(PRICED_LIST_MSG_PATH, id);
+    } catch (e) {
+        console.error('[Discord] Failed to save priced list message ID:', e.message);
     }
 }
 
@@ -1239,4 +1364,4 @@ function updateCheckStats(itemCount) {
 }
 
 function getClient() { return client; }
-module.exports = { initBot, sendChanges, sendAutoBuyNotification, sendCCUChange, updateCheckStats, updateListMessage, updateStatusMessage, sleep, getClient };
+module.exports = { initBot, sendChanges, sendAutoBuyNotification, sendCCUChange, updateCheckStats, updateListMessage, updatePricedListMessage, updateStatusMessage, sleep, getClient };
