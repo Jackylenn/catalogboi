@@ -78,9 +78,7 @@ function buildPricedListMessageContent(items) {
         .map(formatPricedCosmeticLine)
         .filter(Boolean);
 
-    const header = `<@&1354845780074037389>\na lot of ping but\n\n# HALLOWEEN PT2 PRICES\n\n`;
-    const body = pricedLines.length > 0 ? pricedLines.join('\n') : '*No priced cosmetics currently tracked.*';
-    return header + body;
+    return pricedLines.length > 0 ? pricedLines.join('\n') : '*No priced cosmetics currently tracked.*';
 }
 
 async function initBot() {
@@ -236,7 +234,7 @@ async function registerCommands() {
             ),
         new SlashCommandBuilder()
             .setName('priced')
-            .setDescription('View the upcoming cosmetics priced-only list (# HALLOWEEN PT2 PRICES)'),
+            .setDescription('View the upcoming cosmetics priced-only list'),
     ];
 
     const rest = new REST({ version: '10' }).setToken(config.discord.token);
@@ -1100,7 +1098,7 @@ async function updatePricedListMessage() {
     // Check for existing bot message in channel to avoid duplicate creation on restarts
     try {
         const fetched = await listChannel.messages.fetch({ limit: 10 });
-        const existingBotMsg = fetched.find(m => m.author.id === client.user.id && m.content && m.content.includes('# HALLOWEEN PT2 PRICES'));
+        const existingBotMsg = fetched.find(m => m.author.id === client.user.id && m.embeds.length === 0 && (m.content.includes('Shiny Rocks') || m.content.includes('Free') || m.content.includes('# HALLOWEEN PT2 PRICES') || m.content.includes('*No priced cosmetics currently tracked.*')));
         if (existingBotMsg) {
             await existingBotMsg.edit({ content: fullText, embeds: [] });
             savePricedListMessageId(existingBotMsg.id);
