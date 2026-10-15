@@ -8,6 +8,8 @@ function getItemCategory(itemId, price) {
     const id = itemId.toUpperCase();
     const isFreeOrNoPrice = price === 0 || price === null || price === undefined;
 
+    if (id.startsWith('GT')) return 'VIM Bundle';
+    if (id.startsWith('LD')) return 'MonkeBlocks';
     if (id.startsWith('LH')) return 'Hat';
     if (id.startsWith('LF')) return 'Face';
     if (id.startsWith('LB')) return isFreeOrNoPrice ? 'Badge' : 'Shirt';

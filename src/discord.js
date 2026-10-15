@@ -2,7 +2,7 @@ const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, EmbedBuild
 const fs = require('fs');
 const path = require('path');
 const config = require('./config');
-const { getUpcomingCosmetics, getItemDisplayName, removeUpcomingCosmetics, resetBaselines, clearUpcomingCosmetics, diffCosmeticsController, updateCosmeticsControllerBaseline, getCosmeticsControllerBaselineText, getFormattedPrice, getPrice, getPriceString, getCurrencyName } = require('./tracker');
+const { getUpcomingCosmetics, getItemDisplayName, removeUpcomingCosmetics, resetBaselines, clearUpcomingCosmetics, getFormattedPrice, getPrice, getPriceString, getCurrencyName } = require('./tracker');
 const { getItemCategory } = require('./categories');
 const { purchaseItem } = require('./playfab');
 const { diffCCU, getSavedCCU, fetchLiveCCU } = require('./ccu');
@@ -14,7 +14,6 @@ let newItemsChannel = null;
 let priceChangesChannel = null;
 let listChannel = null;
 let statusChannel = null;
-let cosmeticsControllerChannel = null;
 let ccuChannel = null;
 let startTime = Date.now();
 let lastCheckTime = null;
@@ -51,34 +50,59 @@ function hasRealDisplayName(itemId, displayName) {
 function formatPricedCosmeticLine(item) {
     if (!item) return null;
 
-    let price = null;
-    if (item.VirtualCurrencyPrices && typeof item.VirtualCurrencyPrices === 'object') {
-        const values = Object.values(item.VirtualCurrencyPrices);
-        if (values.length > 0) price = values[0];
-    }
-    if (price === null && item.RealCurrencyPrices && typeof item.RealCurrencyPrices === 'object') {
-        const values = Object.values(item.RealCurrencyPrices);
-        if (values.length > 0) price = values[0];
-    }
+    const priceStr = getFormattedPrice(item);
+    if (priceStr === 'No Price') return null;
 
-    if (price === null || price === undefined) return null;
-    const priceNum = parseInt(price, 10);
-    if (isNaN(priceNum)) return null;
-
-    const category = getItemCategory(item.ItemId, priceNum);
-    const priceStr = priceNum === 0 ? 'Free' : `${priceNum} Shiny Rocks`;
-    const displayName = getItemDisplayName(item.ItemId, item.DisplayName);
-    const nameSuffix = hasRealDisplayName(item.ItemId, displayName) ? ` (${displayName})` : '';
-
-    return `- ${category} - ${priceStr}${nameSuffix}`;
+    return formatUpcomingCosmeticLine(item);
 }
 
-function buildPricedListMessageContent(items) {
-    const pricedLines = (items || [])
-        .map(formatPricedCosmeticLine)
-        .filter(Boolean);
+function buildPricedListEmbeds(items) {
+    const pricedItems = (items || []).filter(item => getFormattedPrice(item) !== 'No Price');
 
-    return pricedLines.length > 0 ? pricedLines.join('\n') : '*No priced cosmetics currently tracked.*';
+    let description;
+    if (pricedItems.length === 0) {
+        description = '*No priced cosmetics currently tracked.*';
+    } else {
+        const lines = pricedItems.map(formatPricedCosmeticLine).filter(Boolean);
+        description = lines.join('\n');
+    }
+
+    const embeds = [];
+    if (description.length <= 4000) {
+        embeds.push(new EmbedBuilder()
+            .setTitle(`Upcoming Priced Cosmetics (${pricedItems.length})`)
+            .setDescription(description)
+            .setColor(0x9B59B6)
+            .setTimestamp());
+    } else {
+        const lines = description.split('\n');
+        let currentBatch = [];
+        let currentLen = 0;
+        let batchNum = 0;
+
+        for (const line of lines) {
+            if (currentLen + line.length + 1 > 3900 && currentBatch.length > 0) {
+                batchNum++;
+                embeds.push(new EmbedBuilder()
+                    .setTitle(batchNum === 1 ? `Upcoming Priced Cosmetics (${pricedItems.length})` : `Upcoming Priced Cosmetics (cont.)`)
+                    .setDescription(currentBatch.join('\n'))
+                    .setColor(0x9B59B6));
+                currentBatch = [];
+                currentLen = 0;
+            }
+            currentBatch.push(line);
+            currentLen += line.length + 1;
+        }
+        if (currentBatch.length > 0) {
+            batchNum++;
+            embeds.push(new EmbedBuilder()
+                .setTitle(batchNum === 1 ? `Upcoming Priced Cosmetics (${pricedItems.length})` : `Upcoming Priced Cosmetics (cont.)`)
+                .setDescription(currentBatch.join('\n'))
+                .setColor(0x9B59B6)
+                .setTimestamp());
+        }
+    }
+    return embeds;
 }
 
 async function initBot() {
@@ -139,7 +163,6 @@ async function initBot() {
             priceChangesChannel = (await fetchChan(config.discord.priceChangesChannelId, 'Price Changes')) || catalogChannel;
             listChannel = await fetchChan(config.discord.listChannelId, 'List');
             statusChannel = await fetchChan(config.discord.statusChannelId, 'Status / Heartbeat');
-            cosmeticsControllerChannel = (await fetchChan(config.discord.cosmeticsControllerChannelId, 'CosmeticsController')) || catalogChannel;
             ccuChannel = (await fetchChan(config.discord.ccuChannelId, 'CCU Tracker')) || catalogChannel;
 
             await registerCommands();
@@ -177,14 +200,6 @@ async function registerCommands() {
         new SlashCommandBuilder()
             .setName('checkccu')
             .setDescription('Force an immediate check of Gorilla Tag CCU'),
-        new SlashCommandBuilder()
-            .setName('checkcosmeticscontroller')
-            .setDescription('Upload a new CosmeticsController dump to diff and update item names/prices')
-            .addAttachmentOption(opt =>
-                opt.setName('file')
-                    .setDescription('The new CosmeticsController .txt file')
-                    .setRequired(true)
-            ),
         new SlashCommandBuilder()
             .setName('remove')
             .setDescription('Remove specific item ID(s) from the upcoming cosmetics list')
@@ -278,8 +293,6 @@ async function handleInteraction(interaction) {
         await handleCheckCCU(interaction);
     } else if (interaction.commandName === 'checkcatalog') {
         await handleCheckCatalog(interaction);
-    } else if (interaction.commandName === 'checkcosmeticscontroller') {
-        await handleCheckCosmeticsController(interaction);
     } else if (interaction.commandName === 'remove') {
         await handleRemove(interaction);
     } else if (interaction.commandName === 'buy') {
@@ -355,35 +368,6 @@ async function handlePrefixCommand(message) {
             await replyMsg.edit(replyText);
         } catch (e) {
             await replyMsg.edit(`❌ Error checking catalog: ${e.message}`);
-        }
-    } else if (cmd === 'checkcosmeticscontroller') {
-        const attachment = message.attachments.first();
-        if (!attachment) {
-            await message.reply('⚠️ Please attach a CosmeticsController `.txt` file with `?checkcosmeticscontroller`.');
-            return;
-        }
-
-        try {
-            const resp = await fetch(attachment.url);
-            const newText = await resp.text();
-            const oldText = getCosmeticsControllerBaselineText();
-
-            const diff = diffCosmeticsController(oldText, newText);
-            const targetChan = cosmeticsControllerChannel || message.channel;
-
-            await sendCosmeticsControllerDiffEmbeds(targetChan, diff);
-            updateCosmeticsControllerBaseline(newText);
-            await updateListMessage();
-            await updateStatusMessage();
-
-            const replyEmbed = new EmbedBuilder()
-                .setTitle('CosmeticsController Check Complete')
-                .setColor(0x2B2D31)
-                .setDescription(`Processed **+${diff.added.length}** added, **~${diff.modified.length}** modified, **-${diff.removed.length}** removed.\nBaseline saved & upcoming cosmetics list updated.`);
-
-            await message.reply({ embeds: [replyEmbed] });
-        } catch (err) {
-            await message.reply(`❌ Error checking CosmeticsController: ${err.message}`);
         }
     } else if (cmd === 'remove') {
         const targetIds = parts.slice(1);
@@ -542,8 +526,8 @@ async function handlePrefixCommand(message) {
         }
     } else if (cmd === 'priced') {
         const items = getUpcomingCosmetics();
-        const content = buildPricedListMessageContent(items);
-        await message.reply({ content, allowedMentions: { parse: [] } });
+        const embeds = buildPricedListEmbeds(items);
+        await message.reply({ embeds: embeds.slice(0, 10) });
     }
 }
 
@@ -603,95 +587,6 @@ async function handleCheckCatalog(interaction) {
         await interaction.editReply(reply);
     } catch (e) {
         await interaction.editReply(`❌ Error checking catalog: ${e.message}`);
-    }
-}
-
-async function handleCheckCosmeticsController(interaction) {
-    const attachment = interaction.options.getAttachment('file');
-    if (!attachment) {
-        await interaction.reply({ content: '⚠️ Please attach a valid file.', ephemeral: true });
-        return;
-    }
-
-    await interaction.deferReply();
-
-    try {
-        const resp = await fetch(attachment.url);
-        const newText = await resp.text();
-        const oldText = getCosmeticsControllerBaselineText();
-
-        const diff = diffCosmeticsController(oldText, newText);
-        const targetChan = cosmeticsControllerChannel || interaction.channel;
-
-        await sendCosmeticsControllerDiffEmbeds(targetChan, diff);
-        updateCosmeticsControllerBaseline(newText);
-        await updateListMessage();
-        await updateStatusMessage();
-
-        const replyEmbed = new EmbedBuilder()
-            .setTitle('CosmeticsController Check Complete')
-            .setColor(0x2B2D31)
-            .setDescription(`Processed **+${diff.added.length}** added, **~${diff.modified.length}** modified, **-${diff.removed.length}** removed.\n\nBaseline saved to data/item_names.txt & upcoming cosmetics list updated.`);
-
-        await interaction.editReply({ embeds: [replyEmbed] });
-    } catch (err) {
-        await interaction.editReply({ content: `❌ Error processing CosmeticsController file: ${err.message}` });
-    }
-}
-
-async function sendCosmeticsControllerDiffEmbeds(channel, diff) {
-    const { added, modified, removed } = diff;
-
-    if (added.length === 0 && modified.length === 0 && removed.length === 0) {
-        const embed = new EmbedBuilder()
-            .setTitle('CosmeticsController: No Changes Detected')
-            .setColor(0x2B2D31)
-            .setDescription('*The uploaded file is identical to the current baseline.*');
-        await channel.send({ embeds: [embed] });
-        return;
-    }
-
-    const lines = [];
-    for (const a of added) {
-        lines.push(`+ ${a.id} // ${a.name} // ${a.price}`);
-    }
-    for (const m of modified) {
-        const nameChange = m.oldName !== m.newName ? ` (Name: "${m.oldName}" -> "${m.newName}")` : '';
-        const priceChange = m.oldPrice !== m.newPrice ? ` (Price: "${m.oldPrice}" -> "${m.newPrice}")` : '';
-        lines.push(`~ ${m.id} // ${m.newName} // ${m.newPrice}${nameChange}${priceChange}`);
-    }
-    for (const r of removed) {
-        lines.push(`- ${r.id} // ${r.name} // ${r.price}`);
-    }
-
-    const maxChars = 3800;
-    const blocks = [];
-    let cur = [];
-    let curLen = 0;
-
-    for (const line of lines) {
-        if (curLen + line.length + 1 > maxChars && cur.length > 0) {
-            blocks.push(cur);
-            cur = [];
-            curLen = 0;
-        }
-        cur.push(line);
-        curLen += line.length + 1;
-    }
-    if (cur.length > 0) blocks.push(cur);
-
-    for (let i = 0; i < blocks.length; i++) {
-        const title = blocks.length === 1
-            ? `CosmeticsController Changes (+${added.length}, ~${modified.length}, -${removed.length})`
-            : `CosmeticsController Changes (${i + 1}/${blocks.length})`;
-
-        const embed = new EmbedBuilder()
-            .setTitle(title)
-            .setColor(0x2B2D31)
-            .setDescription('\`\`\`diff\n' + blocks[i].join('\n') + '\n\`\`\`');
-
-        await channel.send({ embeds: [embed] });
-        if (i + 1 < blocks.length) await sleep(1000);
     }
 }
 
@@ -825,8 +720,8 @@ async function handleAutoBuyCommand(interaction) {
 
 async function handlePriced(interaction) {
     const items = getUpcomingCosmetics();
-    const content = buildPricedListMessageContent(items);
-    await interaction.reply({ content, allowedMentions: { parse: [] } });
+    const embeds = buildPricedListEmbeds(items);
+    await interaction.reply({ embeds: embeds.slice(0, 10) });
 }
 
 async function handleUpcoming(interaction) {
@@ -1039,7 +934,7 @@ async function updateMainListMessage() {
     // Check for existing bot list message in channel to avoid duplicates on container restart
     try {
         const fetched = await listChannel.messages.fetch({ limit: 10 });
-        const botListMsg = fetched.find(m => m.author.id === client.user.id && m.embeds.length > 0 && m.embeds[0].title?.includes('Upcoming Cosmetics'));
+        const botListMsg = fetched.find(m => m.author.id === client.user.id && m.embeds.length > 0 && m.embeds[0].title?.startsWith('Upcoming Cosmetics') && !m.embeds[0].title?.includes('Priced'));
         if (botListMsg) {
             await botListMsg.edit({ embeds });
             saveListMessageId(botListMsg.id);
@@ -1082,14 +977,14 @@ async function updatePricedListMessage() {
     if (!listChannel) return;
 
     const items = getUpcomingCosmetics();
-    const fullText = buildPricedListMessageContent(items);
+    const embeds = buildPricedListEmbeds(items);
 
     const savedMsgId = loadPricedListMessageId();
     if (savedMsgId) {
         try {
             const existingMsg = await listChannel.messages.fetch(savedMsgId);
             if (existingMsg) {
-                await existingMsg.edit({ content: fullText, embeds: [] });
+                await existingMsg.edit({ content: '', embeds: embeds.slice(0, 10) });
                 return;
             }
         } catch { }
@@ -1098,16 +993,21 @@ async function updatePricedListMessage() {
     // Check for existing bot message in channel to avoid duplicate creation on restarts
     try {
         const fetched = await listChannel.messages.fetch({ limit: 10 });
-        const existingBotMsg = fetched.find(m => m.author.id === client.user.id && m.embeds.length === 0 && (m.content.includes('Shiny Rocks') || m.content.includes('Free') || m.content.includes('# HALLOWEEN PT2 PRICES') || m.content.includes('*No priced cosmetics currently tracked.*')));
+        const existingBotMsg = fetched.find(m =>
+            m.author.id === client.user.id && (
+                (m.embeds.length > 0 && m.embeds[0].title?.includes('Upcoming Priced Cosmetics')) ||
+                (m.embeds.length === 0 && (m.content.includes('# HALLOWEEN PT2 PRICES') || m.content.includes('Shiny Rocks') || m.content.includes('Free') || m.content.includes('*No priced cosmetics currently tracked.*')))
+            )
+        );
         if (existingBotMsg) {
-            await existingBotMsg.edit({ content: fullText, embeds: [] });
+            await existingBotMsg.edit({ content: '', embeds: embeds.slice(0, 10) });
             savePricedListMessageId(existingBotMsg.id);
             return;
         }
     } catch { }
 
     try {
-        const msg = await listChannel.send({ content: fullText });
+        const msg = await listChannel.send({ embeds: embeds.slice(0, 10) });
         savePricedListMessageId(msg.id);
         console.log('[Discord] Priced list message created.');
     } catch (e) {

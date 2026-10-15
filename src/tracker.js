@@ -30,13 +30,17 @@ function getPriceString(item) {
     const parts = [];
     if (item.VirtualCurrencyPrices && Object.keys(item.VirtualCurrencyPrices).length > 0) {
         for (const [code, val] of Object.entries(item.VirtualCurrencyPrices)) {
-            parts.push(`${val} ${getCurrencyName(code)}`);
+            if (code.toUpperCase() === 'RM') {
+                parts.push(`$${(val / 100).toFixed(2)}`);
+            } else {
+                parts.push(`${val} ${getCurrencyName(code)}`);
+            }
         }
     }
     if (item.RealCurrencyPrices && Object.keys(item.RealCurrencyPrices).length > 0) {
         for (const [code, val] of Object.entries(item.RealCurrencyPrices)) {
             const formatted = (val / 100).toFixed(2);
-            parts.push(`${formatted} ${code}`);
+            parts.push(`$${formatted} ${code}`);
         }
     }
     return parts.length > 0 ? parts.join(', ') : 'No Price';
@@ -44,14 +48,22 @@ function getPriceString(item) {
 
 function getFormattedPrice(item) {
     if (item.VirtualCurrencyPrices && Object.keys(item.VirtualCurrencyPrices).length > 0) {
-        const val = Object.values(item.VirtualCurrencyPrices)[0];
-        if (val === 0) return 'Free';
-        return `${val} Shiny Rocks`;
+        for (const [code, val] of Object.entries(item.VirtualCurrencyPrices)) {
+            if (val === 0) return 'Free';
+            if (code.toUpperCase() === 'RM') {
+                return `$${(val / 100).toFixed(2)}`;
+            }
+            if (code.toUpperCase() === 'SR') {
+                return `${val} Shiny Rocks`;
+            }
+            return `${val} ${code}`;
+        }
     }
     if (item.RealCurrencyPrices && Object.keys(item.RealCurrencyPrices).length > 0) {
-        const val = Object.values(item.RealCurrencyPrices)[0];
-        if (val === 0) return 'Free';
-        return `${(val / 100).toFixed(2)}`;
+        for (const [code, val] of Object.entries(item.RealCurrencyPrices)) {
+            if (val === 0) return 'Free';
+            return `$${(val / 100).toFixed(2)}`;
+        }
     }
     return 'No Price';
 }

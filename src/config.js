@@ -27,7 +27,6 @@ module.exports = {
         listChannelId: process.env.LIST_CHANNEL_ID,
         statusChannelId: process.env.STATUS_CHANNEL_ID,
         hierarchyChannelId: process.env.HIERARCHY_CHANNEL_ID || process.env.HIARCHY_CHANNEL_ID,
-        cosmeticsControllerChannelId: process.env.COSMETICS_CONTROLLER_CHANNEL_ID || process.env.COSMETIC_CONTROLLER_CHANNEL_ID,
         shopifyChannelId: process.env.SHOPIFY_CHANNEL_ID || process.env.STORE_CHANNEL_ID || process.env.MERCH_CHANNEL_ID,
         ccuChannelId: process.env.CCU_CHANNEL_ID,
         devCatalogChannelId: process.env.DEV_CATALOG_CHANNEL_ID || process.env.DEV_CHANNEL_ID,
