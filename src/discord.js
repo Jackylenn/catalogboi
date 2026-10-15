@@ -181,7 +181,12 @@ async function registerCommands() {
             ),
         new SlashCommandBuilder()
             .setName('autobuy')
-            .setDescription('Scan all items in catalog baseline and auto-buy free items'),
+            .setDescription('Scan all items in catalog baseline and auto-buy free items')
+            .addBooleanOption(opt =>
+                opt.setName('force')
+                    .setDescription('Force purchase attempt even if item is already cached as owned')
+                    .setRequired(false)
+            ),
     ];
 
     const rest = new REST({ version: '10' }).setToken(config.discord.token);
@@ -470,15 +475,16 @@ async function handlePrefixCommand(message) {
             await replyMsg.edit(`❌ Error checking ownership: ${err.message}`);
         }
     } else if (cmd === 'autobuy') {
-        const replyMsg = await message.reply('🔍 Scanning all items in catalog baseline for free items (price = 0)...');
+        const force = parts.includes('force');
+        const replyMsg = await message.reply(`🔍 Scanning all items in catalog baseline for free items (force=${force})...`);
         try {
-            const bought = await autoBuyFreeItems(null, sendAutoBuyNotification);
+            const bought = await autoBuyFreeItems(null, sendAutoBuyNotification, force);
             const embed = new EmbedBuilder()
                 .setTitle('Auto-Buy Free Items Scan Complete 🎁')
-                .setColor(0x3498DB)
+                .setColor(bought.length > 0 ? 0x2ECC71 : 0x3498DB)
                 .setDescription(bought.length > 0 
-                    ? `Successfully auto-bought **${bought.length}** free item(s)!` 
-                    : 'Scanned all items in catalog baseline. No new unowned free items to buy.')
+                    ? `Successfully auto-bought **${bought.length}** free item(s)! Notifications sent to <#${config.discord.newItemsChannelId || ''}>.` 
+                    : 'Scanned all items in catalog baseline. All free items are already owned by the bot account.')
                 .setTimestamp();
             await replyMsg.edit({ content: '', embeds: [embed] });
         } catch (err) {
@@ -747,14 +753,15 @@ async function handleCheckOwned(interaction) {
 
 async function handleAutoBuyCommand(interaction) {
     await interaction.deferReply({ ephemeral: true });
+    const force = interaction.options.getBoolean('force') || false;
     try {
-        const bought = await autoBuyFreeItems(null, sendAutoBuyNotification);
+        const bought = await autoBuyFreeItems(null, sendAutoBuyNotification, force);
         const embed = new EmbedBuilder()
             .setTitle('Auto-Buy Free Items Scan Complete 🎁')
-            .setColor(0x3498DB)
+            .setColor(bought.length > 0 ? 0x2ECC71 : 0x3498DB)
             .setDescription(bought.length > 0 
-                ? `Successfully auto-bought **${bought.length}** free item(s)!` 
-                : 'Scanned all items in catalog baseline. No new unowned free items to buy.')
+                ? `Successfully auto-bought **${bought.length}** free item(s)! Receipts sent to <#${config.discord.newItemsChannelId || ''}>.` 
+                : 'Scanned all items in catalog baseline. All free items are already owned by the bot account.')
             .setTimestamp();
         await interaction.editReply({ embeds: [embed] });
     } catch (err) {

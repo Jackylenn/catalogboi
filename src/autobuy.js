@@ -109,7 +109,7 @@ async function syncInventory() {
  * Scan catalog for free items (price = 0) and buy them immediately with the bot's session ticket.
  * Scans ALL items in the entire catalog (data/catalog_baseline.json and any live catalog passed in).
  */
-async function autoBuyFreeItems(catalog = null, notifyFn = null) {
+async function autoBuyFreeItems(catalog = null, notifyFn = null, force = false) {
     const ticket = playfab.getSessionTicket();
     if (!ticket) {
         console.warn('[AutoBuy] No active bot session ticket. Skipping autobuy check.');
@@ -150,7 +150,9 @@ async function autoBuyFreeItems(catalog = null, notifyFn = null) {
     }
 
     // Sync inventory once on startup/first run
-    await syncInventory();
+    if (!force) {
+        await syncInventory();
+    }
 
     const knownItems = loadKnownOwnedItems();
     const freeItems = allItems.filter(isFreeItem);
@@ -158,15 +160,27 @@ async function autoBuyFreeItems(catalog = null, notifyFn = null) {
 
     console.log(`[AutoBuy] Full catalog scan: checking all ${allItems.length} items (${freeItems.length} free items with price 0 detected).`);
 
+    let alreadyOwnedCount = 0;
+    const toAttempt = [];
     for (const item of freeItems) {
-        if (knownItems.has(item.ItemId)) {
-            continue; // Already bought or owned
+        if (!force && knownItems.has(item.ItemId)) {
+            alreadyOwnedCount++;
+        } else {
+            toAttempt.push(item);
         }
+    }
 
+    if (toAttempt.length === 0) {
+        console.log(`[AutoBuy] All ${freeItems.length} free items are already owned by the account. Nothing to buy.`);
+        return [];
+    }
+
+    console.log(`[AutoBuy] Attempting to buy ${toAttempt.length} free item(s) (${alreadyOwnedCount} already confirmed owned).`);
+
+    for (const item of toAttempt) {
         const currency = getFreeCurrencyCode(item);
         const displayName = getItemDisplayName(item.ItemId, item.DisplayName) || item.ItemId;
-        console.log(`[AutoBuy] 🆓 Free item detected: ${item.ItemId} ("${displayName}")! Price: 0 ${currency}`);
-        console.log(`[AutoBuy] Running buy cmd with bot session ticket...`);
+        console.log(`[AutoBuy] 🆓 Free item: ${item.ItemId} ("${displayName}")! Buying with bot session ticket (price: 0 ${currency})...`);
 
         try {
             const result = await playfab.purchaseItem(ticket, item.ItemId, 0, currency);
@@ -196,7 +210,7 @@ async function autoBuyFreeItems(catalog = null, notifyFn = null) {
                     result?.errorCode === 1058;
 
                 if (isAlreadyOwned) {
-                    console.log(`[AutoBuy] Item ${item.ItemId} is already owned by the account. Marking as owned.`);
+                    console.log(`[AutoBuy] Item ${item.ItemId} is confirmed ALREADY OWNED by PlayFab account.`);
                     knownItems.add(item.ItemId);
                     saveKnownOwnedItems(knownItems);
                 }
