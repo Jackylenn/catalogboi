@@ -188,115 +188,6 @@ function diffCatalog(newCatalog) {
     return changes;
 }
 
-// ─── Title Data Diff ─────────────────────────────────────────────
-
-
-function parseTitleDataInput(inputJson) {
-    if (!inputJson) return {};
-    let parsed = inputJson;
-    if (typeof inputJson === 'string') {
-        try {
-            parsed = JSON.parse(inputJson);
-        } catch {
-            return {};
-        }
-    }
-
-    // 1. Mothership / Game Cache format: { Results: [ { key: "...", data: "..." } ] }
-    if (parsed.Results && Array.isArray(parsed.Results)) {
-        const dict = {};
-        for (const item of parsed.Results) {
-            if (item && item.key) {
-                dict[item.key] = item.data;
-            }
-        }
-        return dict;
-    }
-
-    // 2. PlayFab CacheImport format: { TitleData: { en: { ... } } }
-    if (parsed.TitleData && typeof parsed.TitleData === 'object') {
-        const langKey = parsed.TitleData.en ? 'en' : Object.keys(parsed.TitleData)[0];
-        if (langKey && parsed.TitleData[langKey]) {
-            return parsed.TitleData[langKey];
-        }
-    }
-
-    // 3. Direct Key-Value Dictionary format: { "key": "value" }
-    return parsed;
-}
-
-
-
-function diffTitleData(rawTitleData, isFallback = false) {
-    const newTitleData = parseTitleDataInput(rawTitleData);
-    const changes = [];
-
-    let oldTitleData = null;
-    if (fs.existsSync(TITLE_DATA_BASELINE)) {
-        try {
-            oldTitleData = parseTitleDataInput(fs.readFileSync(TITLE_DATA_BASELINE, 'utf8'));
-        } catch (e) {
-            console.error('[Tracker] Failed to read title data baseline:', e.message);
-        }
-    }
-
-    if (oldTitleData && Object.keys(oldTitleData).length > 0) {
-        const oldKeys = new Set(Object.keys(oldTitleData));
-        const newKeys = new Set(Object.keys(newTitleData));
-
-        // New keys
-        for (const key of newKeys) {
-            if (!oldKeys.has(key)) {
-                changes.push({
-                    type: 'title_data_new',
-                    key,
-                    newValue: newTitleData[key],
-                });
-            }
-        }
-
-        // Removed keys (only if not in fallback mode)
-        if (!isFallback) {
-            for (const key of oldKeys) {
-                if (!newKeys.has(key)) {
-                    changes.push({
-                        type: 'title_data_removed',
-                        key,
-                        oldValue: oldTitleData[key],
-                    });
-                }
-            }
-        }
-
-        // Changed values
-        for (const key of oldKeys) {
-            if (newKeys.has(key) && oldTitleData[key] !== newTitleData[key]) {
-                changes.push({
-                    type: 'title_data_changed',
-                    key,
-                    oldValue: oldTitleData[key],
-                    newValue: newTitleData[key],
-                });
-            }
-        }
-    } else {
-        console.log(`[Tracker] Initial run - saving initial title data baseline (${Object.keys(newTitleData).length} keys).`);
-    }
-
-    // Auto-update baseline (merge in fallback mode to preserve Mothership keys)
-    try {
-        const toSave = isFallback && oldTitleData ? Object.assign({}, oldTitleData, newTitleData) : newTitleData;
-        fs.writeFileSync(TITLE_DATA_BASELINE, JSON.stringify(toSave, null, 2));
-        console.log(`[Tracker] Title data baseline saved (${Object.keys(toSave).length} keys).`);
-    } catch (e) {
-        console.error('[Tracker] Failed to save title data baseline:', e.message);
-    }
-
-    return changes;
-}
-
-
-
 
 // ─── Upcoming Cosmetics ─────────────────────────────────────────
 
@@ -622,7 +513,7 @@ function clearUpcomingCosmetics() {
 }
 
 function resetBaselines() {
-    for (const f of [CATALOG_BASELINE, TITLE_DATA_BASELINE, UPCOMING_COSMETICS, DEV_CATALOG_BASELINE]) {
+    for (const f of [CATALOG_BASELINE, UPCOMING_COSMETICS]) {
         if (fs.existsSync(f)) {
             fs.unlinkSync(f);
             console.log(`[Tracker] Deleted ${path.basename(f)}`);
@@ -632,9 +523,6 @@ function resetBaselines() {
 
 module.exports = {
     diffCatalog,
-    diffTitleData,
-    diffDevCatalog,
-    diffDevTitleData,
     getUpcomingCosmetics,
     loadItemNamesMap,
     getItemDisplayName,
@@ -645,164 +533,8 @@ module.exports = {
     diffCosmeticsController,
     updateCosmeticsControllerBaseline,
     getCosmeticsControllerBaselineText,
-    parseTitleDataInput,
     getFormattedPrice,
     getPrice,
     getPriceString,
     getCurrencyName,
 };
-
-// ─── Dev Catalog Diff (TitleId: 195C0) ───────────────────────────
-
-function diffDevCatalog(newCatalog) {
-    const changes = [];
-    let isFirstRun = false;
-
-    let oldCatalog = null;
-    if (fs.existsSync(DEV_CATALOG_BASELINE)) {
-        try {
-            const raw = JSON.parse(fs.readFileSync(DEV_CATALOG_BASELINE, 'utf8'));
-            oldCatalog = raw.Items || raw;
-        } catch (e) {
-            console.error('[Tracker] Failed to parse dev catalog baseline:', e.message);
-            isFirstRun = true;
-        }
-    } else {
-        isFirstRun = true;
-    }
-
-    if (oldCatalog && !isFirstRun) {
-        const oldDict = {};
-        for (const item of oldCatalog) oldDict[item.ItemId] = item;
-        const newDict = {};
-        for (const item of newCatalog) newDict[item.ItemId] = item;
-
-        // New items
-        const newItems = newCatalog.filter(i => !oldDict[i.ItemId]);
-        for (const item of newItems) {
-            changes.push({
-                type: 'dev_new_item',
-                item,
-                displayName: item.DisplayName || item.ItemId,
-            });
-        }
-
-        // Removed items
-        for (const item of oldCatalog.filter(i => !newDict[i.ItemId])) {
-            changes.push({
-                type: 'dev_removed_item',
-                item,
-                displayName: item.DisplayName || item.ItemId,
-            });
-        }
-
-        // Changed items
-        for (const oldItem of oldCatalog.filter(i => newDict[i.ItemId])) {
-            const newItem = newDict[oldItem.ItemId];
-
-            // Name change
-            if ((oldItem.DisplayName || '') !== (newItem.DisplayName || '')) {
-                changes.push({
-                    type: 'dev_name_change',
-                    item: newItem,
-                    oldName: oldItem.DisplayName,
-                    newName: newItem.DisplayName,
-                });
-            }
-
-            // Price change
-            if (!pricesEqual(oldItem, newItem)) {
-                changes.push({
-                    type: 'dev_price_change',
-                    item: newItem,
-                    oldItem,
-                });
-            }
-
-            // Bundle change
-            if (oldItem.Bundle || newItem.Bundle) {
-                if (!bundlesEqual(oldItem, newItem)) {
-                    changes.push({
-                        type: 'dev_bundle_change',
-                        item: newItem,
-                        oldItem,
-                    });
-                }
-            }
-        }
-    } else if (isFirstRun) {
-        console.log(`[Tracker] First run - saving initial dev catalog baseline (${newCatalog.length} items).`);
-    }
-
-    // Save new dev baseline
-    try {
-        fs.writeFileSync(DEV_CATALOG_BASELINE, JSON.stringify(newCatalog, null, 2));
-    } catch (e) {
-        console.error('[Tracker] Failed to save dev catalog baseline:', e.message);
-    }
-
-    return changes;
-}
-
-function diffDevTitleData(newTitleData) {
-    const changes = [];
-    let oldTitleData = null;
-    let isFirstRun = false;
-
-    if (fs.existsSync(DEV_TITLE_DATA_BASELINE)) {
-        try {
-            oldTitleData = JSON.parse(fs.readFileSync(DEV_TITLE_DATA_BASELINE, 'utf8'));
-        } catch (e) {
-            console.error('[Tracker] Failed to read dev title data baseline:', e.message);
-            isFirstRun = true;
-        }
-    } else {
-        isFirstRun = true;
-    }
-
-    if (oldTitleData && Object.keys(oldTitleData).length > 0 && !isFirstRun) {
-        const oldKeys = new Set(Object.keys(oldTitleData));
-        const newKeys = new Set(Object.keys(newTitleData));
-
-        for (const key of newKeys) {
-            if (!oldKeys.has(key)) {
-                changes.push({
-                    type: 'dev_title_data_new',
-                    key,
-                    newValue: newTitleData[key],
-                });
-            }
-        }
-
-        for (const key of oldKeys) {
-            if (!newKeys.has(key)) {
-                changes.push({
-                    type: 'dev_title_data_removed',
-                    key,
-                    oldValue: oldTitleData[key],
-                });
-            }
-        }
-
-        for (const key of oldKeys) {
-            if (newKeys.has(key) && oldTitleData[key] !== newTitleData[key]) {
-                changes.push({
-                    type: 'dev_title_data_changed',
-                    key,
-                    oldValue: oldTitleData[key],
-                    newValue: newTitleData[key],
-                });
-            }
-        }
-    } else if (isFirstRun) {
-        console.log(`[Tracker] Initial run - saving initial dev title data baseline (${Object.keys(newTitleData).length} keys).`);
-    }
-
-    try {
-        fs.writeFileSync(DEV_TITLE_DATA_BASELINE, JSON.stringify(newTitleData, null, 2));
-    } catch (e) {
-        console.error('[Tracker] Failed to save dev title data baseline:', e.message);
-    }
-
-    return changes;
-}

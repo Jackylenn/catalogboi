@@ -1,14 +1,50 @@
 const config = require('./config');
 const steam = require('./steam');
 const playfab = require('./playfab');
-const { diffCatalog, diffTitleData, syncUpcomingNamesFromMapping } = require('./tracker');
-const { initBot, sendChanges, updateCheckStats, updateListMessage, updateStatusMessage, sleep, getClient } = require('./discord');
-const { checkHierarchyDumpsOnStartup } = require('./hierarchy');
-const { checkShopify } = require('./shopify');
+const { diffCatalog, syncUpcomingNamesFromMapping } = require('./tracker');
+const { autoBuyFreeItems } = require('./autobuy');
+const { initBot, sendChanges, sendAutoBuyNotification, updateCheckStats, updateListMessage, updateStatusMessage, sleep, getClient } = require('./discord');
 
-let pollInterval = null;
-let statusInterval = null;
+let pollTimeout = null;
+let statusTimeout = null;
+let isShuttingDown = false;
 let isChecking = false;
+
+function scheduleNextCheck(delayMs) {
+    if (isShuttingDown) return;
+    if (pollTimeout) {
+        clearTimeout(pollTimeout);
+        pollTimeout = null;
+    }
+    const safeDelay = Math.max(5000, Number(delayMs !== undefined ? delayMs : config.pollIntervalMs) || 60000);
+    pollTimeout = setTimeout(async () => {
+        try {
+            await runCheck();
+        } catch (e) {
+            console.error('[Check] Unexpected error during check loop:', e.message);
+        } finally {
+            scheduleNextCheck();
+        }
+    }, safeDelay);
+}
+
+function scheduleNextStatus(delayMs) {
+    if (isShuttingDown) return;
+    if (statusTimeout) {
+        clearTimeout(statusTimeout);
+        statusTimeout = null;
+    }
+    const safeDelay = Math.max(5000, Number(delayMs !== undefined ? delayMs : 60000) || 60000);
+    statusTimeout = setTimeout(async () => {
+        try {
+            await updateStatusMessage();
+        } catch (e) {
+            console.error('[Discord] Unexpected error updating status message:', e.message);
+        } finally {
+            scheduleNextStatus();
+        }
+    }, safeDelay);
+}
 
 async function main() {
     console.log('=== Gorilla Tag Catalog Tracker Bot ===');
@@ -63,13 +99,6 @@ async function main() {
         }
     }
 
-    // Startup Only: Check & diff hierarchy dump files once
-    try {
-        await checkHierarchyDumpsOnStartup(getClient());
-    } catch (e) {
-        console.warn('[Hierarchy] Check error:', e.message);
-    }
-
     // Startup: Check & post initial Dev/Beta CCU status embed
     try {
         const { diffCCU } = require('./ccu');
@@ -85,22 +114,16 @@ async function main() {
     console.log('\n=== Bot is running! ===');
     console.log('Running initial check...\n');
 
-    // Run first check immediately (Catalog, Title Data, Shopify)
+    // Run first check immediately (Catalog, Auto-Buy, Dev CCU)
     await runCheck();
 
     // Ensure list & status channel messages are initialized
     await updateListMessage();
     await updateStatusMessage();
 
-    // Schedule recurring checks for everything (Catalog, Title Data, Shopify)
-    pollInterval = setInterval(async () => {
-        await runCheck();
-    }, config.pollIntervalMs);
-
-    // Schedule recurring 60s heartbeat / status message updates
-    statusInterval = setInterval(async () => {
-        await updateStatusMessage();
-    }, 60 * 1000);
+    // Schedule recurring checks and status updates
+    scheduleNextCheck();
+    scheduleNextStatus();
 }
 
 async function runCheck() {
@@ -150,51 +173,18 @@ async function runCheck() {
             console.log('[Check] No catalog changes.');
         }
 
-        // 2. Fetch & diff Title Data (Mothership -> Fallback to PlayFab)
-        console.log('[Check] Fetching title data...');
-        let titleData = null;
-        let isTdFallback = false;
+        // 2. Auto-buy any free item immediately (price = 0)
         try {
-            const { fetchMothershipTitleData } = require('./mothership');
-            titleData = await fetchMothershipTitleData();
-            console.log(`[Check] Title data (Mothership): ${Object.keys(titleData).length} keys`);
-        } catch {
-            isTdFallback = true;
-            try {
-                titleData = await playfab.getTitleData();
-                console.log(`[Check] Title data (PlayFab): ${Object.keys(titleData).length} keys`);
-            } catch (pfErr) {
-                console.error('[Check] Failed to fetch title data:', pfErr.message);
-                titleData = null;
+            const bought = await autoBuyFreeItems(catalog, sendAutoBuyNotification);
+            if (bought.length > 0) {
+                console.log(`[AutoBuy] Auto-bought ${bought.length} free item(s)!`);
             }
+        } catch (abErr) {
+            console.error('[AutoBuy] Check error:', abErr.message);
         }
 
-        // Diff title data
-        if (titleData) {
-            const titleChanges = diffTitleData(titleData, isTdFallback);
-            if (titleChanges.length > 0) {
-                console.log(`[Check] ${titleChanges.length} title data change(s) detected!`);
-                await sendChanges(titleChanges);
-            } else {
-                console.log('[Check] No title data changes.');
-            }
-        }
-
-        // 3. Fetch & diff Shopify Merch Store
-        console.log('[Check] Checking Shopify merch store...');
-        try {
-            const shopifyChanges = await checkShopify(getClient());
-            if (shopifyChanges && shopifyChanges.length > 0) {
-                console.log(`[Check] ${shopifyChanges.length} Shopify change(s) detected!`);
-            } else {
-                console.log('[Check] No Shopify store changes.');
-            }
-        } catch (e) {
-            console.error('[Check] Shopify check error:', e.message);
-        }
-
-        // 4. Fetch & diff CCU Tracker
-        console.log('[Check] Checking CCU...');
+        // 3. Fetch & diff Dev CCU Tracker
+        console.log('[Check] Checking Dev CCU...');
         try {
             const { diffCCU } = require('./ccu');
             const { sendCCUChange } = require('./discord');
@@ -209,46 +199,9 @@ async function runCheck() {
             console.error('[Check] CCU check error:', e.message);
         }
 
-        // 5. Fetch & diff Dev PlayFab Catalog & Title Data (TitleId: 195C0)
-        console.log('[Check] Checking Dev PlayFab catalog & title data (195C0)...');
-        try {
-            const devPlayfab = require('./dev_playfab');
-            const { diffDevCatalog, diffDevTitleData } = require('./tracker');
-            const { sendDevChanges } = require('./discord');
-
-            const devCatalog = await devPlayfab.getDevCatalogItems();
-            const devCatalogChanges = diffDevCatalog(devCatalog);
-
-            let devTitleChanges = [];
-            try {
-                const { fetchMothershipTitleData } = require('./mothership');
-                let devTd = null;
-                let isDevTdFallback = false;
-                try {
-                    devTd = await fetchMothershipTitleData(true);
-                } catch (msErr) {
-                    isDevTdFallback = true;
-                    devTd = await devPlayfab.getDevTitleData();
-                }
-                if (devTd) {
-                    devTitleChanges = diffDevTitleData(devTd, isDevTdFallback);
-                }
-            } catch (e) {
-                console.warn('[Check] Failed to fetch dev title data:', e.message);
-            }
-
-            const totalDevChanges = [...devCatalogChanges, ...devTitleChanges];
-            if (totalDevChanges.length > 0) {
-                console.log(`[Check] ${totalDevChanges.length} Dev change(s) detected!`);
-                await sendDevChanges(totalDevChanges);
-            } else {
-                console.log('[Check] No Dev changes.');
-            }
-        } catch (e) {
-            console.error('[Check] Dev PlayFab check error:', e.message);
+        if (catalog && typeof catalog.length === 'number') {
+            updateCheckStats(catalog.length);
         }
-
-        updateCheckStats(catalog.length);
         await updateStatusMessage();
         console.log(`[Check] Done. Next check in ${config.pollIntervalSeconds}s.`);
 
@@ -261,19 +214,16 @@ async function runCheck() {
 }
 
 // Graceful shutdown
-process.on('SIGINT', () => {
+function shutdown() {
     console.log('\nShutting down...');
-    if (pollInterval) clearInterval(pollInterval);
-    if (statusInterval) clearInterval(statusInterval);
+    isShuttingDown = true;
+    if (pollTimeout) clearTimeout(pollTimeout);
+    if (statusTimeout) clearTimeout(statusTimeout);
     process.exit(0);
-});
+}
 
-process.on('SIGTERM', () => {
-    console.log('\nShutting down...');
-    if (pollInterval) clearInterval(pollInterval);
-    if (statusInterval) clearInterval(statusInterval);
-    process.exit(0);
-});
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
 
 main().catch(e => {
     console.error('Fatal error:', e);

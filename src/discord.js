@@ -2,23 +2,20 @@ const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, EmbedBuild
 const fs = require('fs');
 const path = require('path');
 const config = require('./config');
-const { getUpcomingCosmetics, getItemDisplayName, removeUpcomingCosmetics, resetBaselines, clearUpcomingCosmetics, diffCosmeticsController, updateCosmeticsControllerBaseline, getCosmeticsControllerBaselineText, diffTitleData, parseTitleDataInput, getFormattedPrice, getPrice, getPriceString, getCurrencyName } = require('./tracker');
+const { getUpcomingCosmetics, getItemDisplayName, removeUpcomingCosmetics, resetBaselines, clearUpcomingCosmetics, diffCosmeticsController, updateCosmeticsControllerBaseline, getCosmeticsControllerBaselineText, getFormattedPrice, getPrice, getPriceString, getCurrencyName } = require('./tracker');
 const { getItemCategory } = require('./categories');
-const { getSavedProducts, getSavedCollections, checkShopify, fetchShopifyStoreData, STORE_DOMAIN } = require('./shopify');
 const { purchaseItem } = require('./playfab');
 const { diffCCU, getSavedCCU, fetchLiveCCU } = require('./ccu');
+const { checkIfItemOwned, autoBuyFreeItems } = require('./autobuy');
 
 let client = null;
 let catalogChannel = null;
 let newItemsChannel = null;
 let priceChangesChannel = null;
-let titleDataChannel = null;
 let listChannel = null;
 let statusChannel = null;
 let cosmeticsControllerChannel = null;
-let shopifyChannel = null;
 let ccuChannel = null;
-let devCatalogChannel = null;
 let startTime = Date.now();
 let lastCheckTime = null;
 let lastCheckItemCount = 0;
@@ -95,13 +92,10 @@ async function initBot() {
             catalogChannel = await fetchChan(config.discord.catalogChannelId, 'Catalog');
             newItemsChannel = (await fetchChan(config.discord.newItemsChannelId, 'New Items')) || catalogChannel;
             priceChangesChannel = (await fetchChan(config.discord.priceChangesChannelId, 'Price Changes')) || catalogChannel;
-            titleDataChannel = (await fetchChan(config.discord.titleDataChannelId, 'Title Data')) || catalogChannel;
             listChannel = await fetchChan(config.discord.listChannelId, 'List');
             statusChannel = await fetchChan(config.discord.statusChannelId, 'Status / Heartbeat');
             cosmeticsControllerChannel = (await fetchChan(config.discord.cosmeticsControllerChannelId, 'CosmeticsController')) || catalogChannel;
-            shopifyChannel = (await fetchChan(config.discord.shopifyChannelId, 'Shopify Merch')) || newItemsChannel || catalogChannel;
             ccuChannel = (await fetchChan(config.discord.ccuChannelId, 'CCU Tracker')) || catalogChannel;
-            devCatalogChannel = (await fetchChan(config.discord.devCatalogChannelId, 'Dev Catalog')) || catalogChannel;
 
             await registerCommands();
             resolve();
@@ -130,42 +124,14 @@ async function registerCommands() {
             .setName('clearlist')
             .setDescription('Clear the entire upcoming cosmetics list'),
         new SlashCommandBuilder()
-            .setName('checkdev')
-            .setDescription('Force an immediate scan of the Dev PlayFab catalog (195C0)'),
-        new SlashCommandBuilder()
-            .setName('checkdevcatalog')
-            .setDescription('Force an immediate scan of the Dev PlayFab catalog (195C0)'),
-        new SlashCommandBuilder()
             .setName('checkcatalog')
-            .setDescription('Force an immediate scan of the PlayFab catalog for new items and price changes'),
+            .setDescription('Force an immediate scan of the PlayFab catalog for new items and free autobuy'),
         new SlashCommandBuilder()
             .setName('ccu')
             .setDescription('View current Gorilla Tag concurrent online players (CCU)'),
         new SlashCommandBuilder()
             .setName('checkccu')
             .setDescription('Force an immediate check of Gorilla Tag CCU'),
-        new SlashCommandBuilder()
-            .setName('shopify')
-            .setDescription('View current Gorilla Tag merch store products & collections'),
-        new SlashCommandBuilder()
-            .setName('checkshopify')
-            .setDescription('Force an immediate scan of the Shopify merch store for updates'),
-        new SlashCommandBuilder()
-            .setName('updatemothershiptoken')
-            .setDescription('Update the Mothership Title Data access token')
-            .addStringOption(opt =>
-                opt.setName('token')
-                    .setDescription('The new Mothership token (JWT)')
-                    .setRequired(true)
-            ),
-        new SlashCommandBuilder()
-            .setName('checktitledata')
-            .setDescription('Upload a TitleDataCache.json dump to compare and update Title Data baseline')
-            .addAttachmentOption(opt =>
-                opt.setName('file')
-                    .setDescription('The TitleDataCache.json or TitleData .json file')
-                    .setRequired(true)
-            ),
         new SlashCommandBuilder()
             .setName('checkcosmeticscontroller')
             .setDescription('Upload a new CosmeticsController dump to diff and update item names/prices')
@@ -205,6 +171,17 @@ async function registerCommands() {
                     .setDescription('Virtual Currency code (default: SR)')
                     .setRequired(false)
             ),
+        new SlashCommandBuilder()
+            .setName('checkowned')
+            .setDescription('Check if the bot PlayFab account owns a specific item')
+            .addStringOption(opt =>
+                opt.setName('itemid')
+                    .setDescription('Item ID to check (e.g. LBAOJ.)')
+                    .setRequired(true)
+            ),
+        new SlashCommandBuilder()
+            .setName('autobuy')
+            .setDescription('Scan all items in catalog baseline and auto-buy free items'),
     ];
 
     const rest = new REST({ version: '10' }).setToken(config.discord.token);
@@ -246,24 +223,18 @@ async function handleInteraction(interaction) {
         await handleCCU(interaction);
     } else if (interaction.commandName === 'checkccu') {
         await handleCheckCCU(interaction);
-    } else if (interaction.commandName === 'shopify') {
-        await handleShopify(interaction);
-    } else if (interaction.commandName === 'checkdev' || interaction.commandName === 'checkdevcatalog') {
-        await handleCheckDevCatalog(interaction);
     } else if (interaction.commandName === 'checkcatalog') {
         await handleCheckCatalog(interaction);
-    } else if (interaction.commandName === 'checkshopify') {
-        await handleCheckShopify(interaction);
-    } else if (interaction.commandName === 'updatemothershiptoken') {
-        await handleUpdateMothershipToken(interaction);
-    } else if (interaction.commandName === 'checktitledata') {
-        await handleCheckTitleData(interaction);
     } else if (interaction.commandName === 'checkcosmeticscontroller') {
         await handleCheckCosmeticsController(interaction);
     } else if (interaction.commandName === 'remove') {
         await handleRemove(interaction);
     } else if (interaction.commandName === 'buy') {
         await handleBuy(interaction);
+    } else if (interaction.commandName === 'checkowned') {
+        await handleCheckOwned(interaction);
+    } else if (interaction.commandName === 'autobuy') {
+        await handleAutoBuyCommand(interaction);
     }
 }
 
@@ -277,54 +248,7 @@ async function handlePrefixCommand(message) {
     const parts = fullContent.split(/\s+/);
     const cmd = parts[0].toLowerCase();
 
-    if (cmd === 'updatemothershiptoken') {
-        const token = parts.slice(1).join(' ').trim();
-        if (!token) {
-            return message.reply('❌ Please provide the new Mothership token:\n`?updatemothershiptoken <token>`');
-        }
-        const replyMsg = await message.reply('🔄 Validating Mothership token with Gateway...');
-        try {
-            const { validateMothershipToken, setMothershipToken, fetchMothershipTitleData } = require('./mothership');
-            const { diffTitleData } = require('./tracker');
-
-            const val = await validateMothershipToken(token);
-            if (!val.success) {
-                return replyMsg.edit({
-                    content: '',
-                    embeds: [
-                        new EmbedBuilder()
-                            .setTitle('❌ Mothership Token Invalid')
-                            .setDescription(`The token was rejected by Mothership:
-\`\`\`${val.error}\`\`\``)
-                            .setColor(0xE74C3C)
-                    ]
-                });
-            }
-
-            setMothershipToken(token);
-            const titleData = await fetchMothershipTitleData();
-            const changes = diffTitleData(titleData);
-            if (changes.length > 0) {
-                await sendChanges(changes);
-            }
-
-            return replyMsg.edit({
-                content: '',
-                embeds: [
-                    new EmbedBuilder()
-                        .setTitle('✅ Mothership Token Updated!')
-                        .setDescription(`Successfully authenticated with Mothership!
-
-• **Keys Loaded**: ${val.count} keys
-• **Changes Detected**: ${changes.length}
-• **Status**: Active & saved to storage`)
-                        .setColor(0x2ECC71)
-                ]
-            });
-        } catch (e) {
-            return replyMsg.edit(`❌ Error updating token: ${e.message}`);
-        }
-    } else if (cmd === 'clearlist') {
+    if (cmd === 'clearlist') {
         clearUpcomingCosmetics();
         await message.reply('Upcoming cosmetics list cleared!');
         await updateListMessage();
@@ -357,112 +281,25 @@ async function handlePrefixCommand(message) {
         } catch (e) {
             await replyMsg.edit(`❌ Error checking CCU: ${e.message}`);
         }
-    } else if (cmd === 'shopify') {
-        const products = getSavedProducts();
-        const collections = getSavedCollections();
-
-        const embed = new EmbedBuilder()
-            .setTitle('Gorilla Tag Merch Store')
-            .setURL(`https://${STORE_DOMAIN}`)
-            .setColor(0x2ECC71)
-            .setDescription(`Tracking **${products.length}** products across **${collections.length}** collections on \`${STORE_DOMAIN}\`.`)
-            .addFields(
-                { name: 'Store Link', value: `[Visit Store](https://${STORE_DOMAIN})`, inline: true },
-                { name: 'Products Tracked', value: `${products.length}`, inline: true },
-                { name: 'Collections Tracked', value: `${collections.length}`, inline: true },
-            );
-
-        if (products.length > 0) {
-            const sample = products.slice(0, 5).map(p => `• **[${p.title}](https://${STORE_DOMAIN}/products/${p.handle})**`).join('\n');
-            embed.addFields({ name: 'Recent Products', value: sample, inline: false });
-        }
-
-        await message.reply({ embeds: [embed] });
-    } else if (cmd === 'checkdev' || cmd === 'checkdevcatalog') {
-        const replyMsg = await message.reply('🔄 Scanning Dev PlayFab catalog & title data (195C0)...');
-        try {
-            const { getDevCatalogItems, getDevTitleData } = require('./dev_playfab');
-            const { diffDevCatalog, diffDevTitleData } = require('./tracker');
-            const catalog = await getDevCatalogItems();
-            const changes = diffDevCatalog(catalog);
-
-            let titleChanges = [];
-            try {
-                const td = await getDevTitleData();
-                titleChanges = diffDevTitleData(td);
-            } catch { }
-
-            const totalChanges = [...changes, ...titleChanges];
-            if (totalChanges.length > 0) {
-                await sendDevChanges(totalChanges);
-            }
-            await replyMsg.edit(`✅ Scanned Dev catalog (**${catalog.length}** items). Found **${totalChanges.length}** change(s).`);
-        } catch (e) {
-            await replyMsg.edit(`❌ Error checking Dev catalog: ${e.message}`);
-        }
     } else if (cmd === 'checkcatalog') {
-        const replyMsg = await message.reply('🔄 Scanning PlayFab catalog for new items...');
+        const replyMsg = await message.reply('🔄 Scanning PlayFab catalog for new items and free autobuy...');
         try {
             const { getCatalogItems } = require('./playfab');
             const { diffCatalog } = require('./tracker');
+            const { autoBuyFreeItems } = require('./autobuy');
             const catalog = await getCatalogItems();
             const changes = diffCatalog(catalog);
             if (changes.length > 0) {
                 await sendChanges(changes);
             }
-            await replyMsg.edit(`✅ Scanned PlayFab catalog (**${catalog.length}** items). Found **${changes.length}** change(s).`);
+            const bought = await autoBuyFreeItems(catalog, sendAutoBuyNotification);
+            let replyText = `✅ Scanned PlayFab catalog (**${catalog.length}** items). Found **${changes.length}** change(s).`;
+            if (bought.length > 0) {
+                replyText += ` Auto-bought **${bought.length}** free item(s)! 🎉`;
+            }
+            await replyMsg.edit(replyText);
         } catch (e) {
             await replyMsg.edit(`❌ Error checking catalog: ${e.message}`);
-        }
-    } else if (cmd === 'checkshopify') {
-        const replyMsg = await message.reply('Scanning Shopify merch store for updates...');
-        try {
-            const changes = await checkShopify(client);
-            const targetChan = shopifyChannel || newItemsChannel || catalogChannel || message.channel;
-
-            const embed = new EmbedBuilder()
-                .setTitle('Shopify Check Complete')
-                .setColor(0x2B2D31)
-                .setDescription(`Scan complete. Found **${changes.length}** change(s).\nDestination: <#${targetChan.id}>`);
-
-            await replyMsg.edit({ content: '', embeds: [embed] });
-        } catch (e) {
-            await replyMsg.edit(`❌ Error checking Shopify: ${e.message}`);
-        }
-    } else if (cmd === 'checktitledata') {
-        const attachment = message.attachments.first();
-        if (!attachment) {
-            await message.reply('⚠️ Please attach a `TitleDataCache.json` or `.json` file with `?checktitledata`.');
-            return;
-        }
-
-        try {
-            const resp = await fetch(attachment.url);
-            const text = await resp.text();
-            const parsed = JSON.parse(text);
-
-            const changes = diffTitleData(parsed);
-            const targetChan = titleDataChannel || catalogChannel || message.channel;
-
-            if (changes.length === 0) {
-                const embed = new EmbedBuilder()
-                    .setTitle('Title Data: No Changes Detected')
-                    .setColor(0x2B2D31)
-                    .setDescription('*The uploaded Title Data is identical to the current baseline.*');
-                await message.reply({ embeds: [embed] });
-                return;
-            }
-
-            await sendChanges(changes);
-
-            const replyEmbed = new EmbedBuilder()
-                .setTitle('Title Data Check Complete')
-                .setColor(0x2B2D31)
-                .setDescription(`Detected and sent **${changes.length}** title data change(s) to <#${targetChan.id}>.\nBaseline saved.`);
-
-            await message.reply({ embeds: [replyEmbed] });
-        } catch (err) {
-            await message.reply(`❌ Error checking Title Data: ${err.message}`);
         }
     } else if (cmd === 'checkcosmeticscontroller') {
         const attachment = message.attachments.first();
@@ -599,6 +436,54 @@ async function handlePrefixCommand(message) {
         } catch (e) {
             await replyMsg.edit(`❌ Error during purchase: ${e.message}`);
         }
+    } else if (cmd === 'checkowned') {
+        const itemId = parts[1];
+        if (!itemId) {
+            await message.reply('⚠️ Usage: `?checkowned <itemid>` (e.g. `?checkowned LBAOJ.`)');
+            return;
+        }
+
+        const replyMsg = await message.reply(`Checking ownership for \`${itemId}\`...`);
+        try {
+            const result = await checkIfItemOwned(itemId);
+            const displayName = getItemDisplayName(itemId) || itemId;
+            if (result.owned) {
+                const embed = new EmbedBuilder()
+                    .setTitle('Item Ownership: OWNED ✅')
+                    .setColor(0x2ECC71)
+                    .setDescription(`The bot account **owns** **${displayName}** (\`${itemId}\`)!`)
+                    .addFields(
+                        { name: 'Source', value: result.live ? 'Live PlayFab Inventory' : 'Cached Autobought Baseline', inline: true },
+                        { name: 'Instance ID', value: result.item?.ItemInstanceId ? `\`${result.item.ItemInstanceId}\`` : 'N/A', inline: true }
+                    )
+                    .setTimestamp();
+                await replyMsg.edit({ content: '', embeds: [embed] });
+            } else {
+                const embed = new EmbedBuilder()
+                    .setTitle('Item Ownership: NOT OWNED ❌')
+                    .setColor(0xE74C3C)
+                    .setDescription(`The bot account **does not own** **${displayName}** (\`${itemId}\`).`)
+                    .setTimestamp();
+                await replyMsg.edit({ content: '', embeds: [embed] });
+            }
+        } catch (err) {
+            await replyMsg.edit(`❌ Error checking ownership: ${err.message}`);
+        }
+    } else if (cmd === 'autobuy') {
+        const replyMsg = await message.reply('🔍 Scanning all items in catalog baseline for free items (price = 0)...');
+        try {
+            const bought = await autoBuyFreeItems(null, sendAutoBuyNotification);
+            const embed = new EmbedBuilder()
+                .setTitle('Auto-Buy Free Items Scan Complete 🎁')
+                .setColor(0x3498DB)
+                .setDescription(bought.length > 0 
+                    ? `Successfully auto-bought **${bought.length}** free item(s)!` 
+                    : 'Scanned all items in catalog baseline. No new unowned free items to buy.')
+                .setTimestamp();
+            await replyMsg.edit({ content: '', embeds: [embed] });
+        } catch (err) {
+            await replyMsg.edit(`❌ Error running auto-buy scan: ${err.message}`);
+        }
     }
 }
 
@@ -639,196 +524,25 @@ async function handleCheckCCU(interaction) {
     }
 }
 
-async function handleShopify(interaction) {
-    const products = getSavedProducts();
-    const collections = getSavedCollections();
-
-    const embed = new EmbedBuilder()
-        .setTitle('Gorilla Tag Merch Store')
-        .setURL(`https://${STORE_DOMAIN}`)
-        .setColor(0x2ECC71)
-        .setDescription(`Tracking **${products.length}** products across **${collections.length}** collections on \`${STORE_DOMAIN}\`.`)
-        .addFields(
-            { name: 'Store Link', value: `[Visit Store](https://${STORE_DOMAIN})`, inline: true },
-            { name: 'Products Tracked', value: `${products.length}`, inline: true },
-            { name: 'Collections Tracked', value: `${collections.length}`, inline: true },
-        );
-
-    if (products.length > 0) {
-        const sample = products.slice(0, 5).map(p => `• **[${p.title}](https://${STORE_DOMAIN}/products/${p.handle})**`).join('\n');
-        embed.addFields({ name: 'Recent Products', value: sample, inline: false });
-    }
-
-    await interaction.reply({ embeds: [embed] });
-}
-
-async function handleCheckDevCatalog(interaction) {
-    await interaction.deferReply();
-    try {
-        const { getDevCatalogItems, getDevTitleData } = require('./dev_playfab');
-        const { diffDevCatalog, diffDevTitleData } = require('./tracker');
-        const catalog = await getDevCatalogItems();
-        const changes = diffDevCatalog(catalog);
-
-        let titleChanges = [];
-        try {
-            const td = await getDevTitleData();
-            titleChanges = diffDevTitleData(td);
-        } catch { }
-
-        const totalChanges = [...changes, ...titleChanges];
-        if (totalChanges.length > 0) {
-            await sendDevChanges(totalChanges);
-        }
-        await interaction.editReply(`✅ Scanned Dev catalog (**${catalog.length}** items). Found **${totalChanges.length}** change(s).`);
-    } catch (e) {
-        await interaction.editReply(`❌ Error checking Dev catalog: ${e.message}`);
-    }
-}
-
-async function sendDevChanges(changes) {
-    if (!changes || changes.length === 0) return;
-    const targetChannel = devCatalogChannel || catalogChannel;
-
-    for (const change of changes) {
-        let embed;
-        let files = [];
-
-        switch (change.type) {
-            case 'dev_new_item': {
-                const item = change.item;
-                embed = new EmbedBuilder()
-                    .setTitle('New item added to dev catalog')
-                    .setDescription(`**${item.DisplayName || item.ItemId}**\nID: \`${item.ItemId}\``)
-                    .setColor(0x2ECC71);
-                if (item.Description) embed.addFields({ name: 'Description', value: item.Description, inline: false });
-                embed.addFields({ name: 'Price', value: getPriceString(item), inline: false });
-                break;
-            }
-            case 'dev_removed_item':
-                embed = new EmbedBuilder()
-                    .setTitle('Item removed from dev catalog')
-                    .setDescription(`**${change.displayName}**\nID: \`${change.item.ItemId}\``)
-                    .setColor(0xE74C3C);
-                break;
-            case 'dev_name_change':
-                embed = new EmbedBuilder()
-                    .setTitle('Dev display name changed')
-                    .setDescription(`ID: \`${change.item.ItemId}\``)
-                    .setColor(0xF1C40F)
-                    .addFields(
-                        { name: 'Old name', value: change.oldName || 'None', inline: true },
-                        { name: 'New name', value: change.newName || 'None', inline: true },
-                    );
-                break;
-            case 'dev_price_change': {
-                embed = buildPriceChangeEmbed(change);
-                embed.setTitle('Dev price changed');
-                break;
-            }
-            case 'dev_bundle_change': {
-                embed = buildBundleChangeEmbed(change);
-                embed.setTitle('Dev bundle changed');
-                break;
-            }
-            case 'dev_title_data_new': {
-                const res = buildTitleDataEmbed('New dev title data key', change.key, null, change.newValue);
-                embed = res.embed;
-                files = res.files;
-                break;
-            }
-            case 'dev_title_data_removed': {
-                const res = buildTitleDataEmbed('Dev title data key removed', change.key, change.oldValue, null);
-                embed = res.embed;
-                files = res.files;
-                break;
-            }
-            case 'dev_title_data_changed': {
-                const res = buildTitleDataEmbed('Dev title data value changed', change.key, change.oldValue, change.newValue);
-                embed = res.embed;
-                files = res.files;
-                break;
-            }
-            default:
-                continue;
-        }
-
-        if (embed) {
-            await sendToSpecificChannel(targetChannel, embed, files);
-            await sleep(1200);
-        }
-    }
-}
-
 async function handleCheckCatalog(interaction) {
     await interaction.deferReply();
     try {
         const { getCatalogItems } = require('./playfab');
         const { diffCatalog } = require('./tracker');
+        const { autoBuyFreeItems } = require('./autobuy');
         const catalog = await getCatalogItems();
         const changes = diffCatalog(catalog);
         if (changes.length > 0) {
             await sendChanges(changes);
         }
-        await interaction.editReply(`✅ Scanned PlayFab catalog (**${catalog.length}** items). Found **${changes.length}** change(s).`);
+        const bought = await autoBuyFreeItems(catalog, sendAutoBuyNotification);
+        let reply = `✅ Scanned PlayFab catalog (**${catalog.length}** items). Found **${changes.length}** change(s).`;
+        if (bought.length > 0) {
+            reply += ` Auto-bought **${bought.length}** free item(s)! 🎉`;
+        }
+        await interaction.editReply(reply);
     } catch (e) {
         await interaction.editReply(`❌ Error checking catalog: ${e.message}`);
-    }
-}
-
-async function handleCheckShopify(interaction) {
-    await interaction.deferReply();
-    try {
-        const changes = await checkShopify(client);
-        const targetChan = shopifyChannel || newItemsChannel || catalogChannel || interaction.channel;
-
-        const embed = new EmbedBuilder()
-            .setTitle('Shopify Check Complete')
-            .setColor(0x2B2D31)
-            .setDescription(`Scan complete. Found **${changes.length}** change(s).\nDestination: <#${targetChan.id}>`);
-
-        await interaction.editReply({ embeds: [embed] });
-    } catch (e) {
-        await interaction.editReply({ content: `❌ Error checking Shopify store: ${e.message}` });
-    }
-}
-
-async function handleCheckTitleData(interaction) {
-    const attachment = interaction.options.getAttachment('file');
-    if (!attachment) {
-        await interaction.reply({ content: '⚠️ Please attach a valid JSON file.', ephemeral: true });
-        return;
-    }
-
-    await interaction.deferReply();
-
-    try {
-        const resp = await fetch(attachment.url);
-        const text = await resp.text();
-        const parsed = JSON.parse(text);
-
-        const changes = diffTitleData(parsed);
-        const targetChan = titleDataChannel || catalogChannel || interaction.channel;
-
-        if (changes.length === 0) {
-            const embed = new EmbedBuilder()
-                .setTitle('Title Data: No Changes Detected')
-                .setColor(0x2B2D31)
-                .setDescription('*The uploaded Title Data is identical to the current baseline.*');
-            await interaction.editReply({ embeds: [embed] });
-            return;
-        }
-
-        await sendChanges(changes);
-
-        const replyEmbed = new EmbedBuilder()
-            .setTitle('Title Data Check Complete')
-            .setColor(0x2B2D31)
-            .setDescription(`Detected and sent **${changes.length}** title data change(s) to <#${targetChan.id}>.\n\nBaseline saved.`);
-
-        await interaction.editReply({ embeds: [replyEmbed] });
-    } catch (err) {
-        await interaction.editReply({ content: `❌ Error processing Title Data file: ${err.message}` });
     }
 }
 
@@ -955,63 +669,6 @@ async function handleRemove(interaction) {
     await updateStatusMessage();
 }
 
-async function handleCheckDevCatalog(interaction) {
-    await interaction.deferReply();
-    try {
-        const { getDevCatalogItems, getDevTitleData } = require('./dev_playfab');
-        const { diffDevCatalog, diffDevTitleData } = require('./tracker');
-        const catalog = await getDevCatalogItems();
-        const changes = diffDevCatalog(catalog);
-
-        let titleChanges = [];
-        try {
-            const { fetchMothershipTitleData } = require('./mothership');
-            let td = null;
-            try {
-                td = await fetchMothershipTitleData(true);
-            } catch {
-                td = await getDevTitleData();
-            }
-            if (td) titleChanges = diffDevTitleData(td);
-        } catch { }
-
-        const totalChanges = [...changes, ...titleChanges];
-        if (totalChanges.length > 0) {
-            await sendDevChanges(totalChanges);
-        }
-        await interaction.editReply(`✅ Scanned Dev catalog (**${catalog.length}** items). Found **${totalChanges.length}** change(s).`);
-    } catch (e) {
-        await interaction.editReply(`❌ Error checking Dev catalog: ${e.message}`);
-    }
-}
-
-async function handleCheckCatalog(interaction) {
-    await interaction.deferReply();
-    try {
-        const { getCatalogItems } = require('./playfab');
-        const { diffCatalog } = require('./tracker');
-        const catalog = await getCatalogItems();
-        const changes = diffCatalog(catalog);
-        if (changes.length > 0) {
-            await sendChanges(changes);
-        }
-        await interaction.editReply(`✅ Scanned Production catalog (**${catalog.length}** items). Found **${changes.length}** change(s).`);
-    } catch (e) {
-        await interaction.editReply(`❌ Error checking Production catalog: ${e.message}`);
-    }
-}
-
-async function handleCheckShopify(interaction) {
-    await interaction.deferReply();
-    try {
-        const { checkShopify } = require('./shopify');
-        const changes = await checkShopify(client);
-        await interaction.editReply(`✅ Scanned Shopify store. Found **${changes ? changes.length : 0}** change(s).`);
-    } catch (e) {
-        await interaction.editReply(`❌ Error checking Shopify: ${e.message}`);
-    }
-}
-
 async function handleBuy(interaction) {
     await interaction.deferReply({ ephemeral: true });
 
@@ -1055,6 +712,53 @@ async function handleBuy(interaction) {
         await interaction.editReply({
             content: `❌ Error during purchase: ${err.message}`,
         });
+    }
+}
+
+async function handleCheckOwned(interaction) {
+    await interaction.deferReply({ ephemeral: true });
+    const itemId = interaction.options.getString('itemid');
+    try {
+        const result = await checkIfItemOwned(itemId);
+        const displayName = getItemDisplayName(itemId) || itemId;
+        if (result.owned) {
+            const embed = new EmbedBuilder()
+                .setTitle('Item Ownership: OWNED ✅')
+                .setColor(0x2ECC71)
+                .setDescription(`The bot account **owns** **${displayName}** (\`${itemId}\`)!`)
+                .addFields(
+                    { name: 'Source', value: result.live ? 'Live PlayFab Inventory' : 'Cached Autobought Baseline', inline: true },
+                    { name: 'Instance ID', value: result.item?.ItemInstanceId ? `\`${result.item.ItemInstanceId}\`` : 'N/A', inline: true }
+                )
+                .setTimestamp();
+            await interaction.editReply({ embeds: [embed] });
+        } else {
+            const embed = new EmbedBuilder()
+                .setTitle('Item Ownership: NOT OWNED ❌')
+                .setColor(0xE74C3C)
+                .setDescription(`The bot account **does not own** **${displayName}** (\`${itemId}\`).`)
+                .setTimestamp();
+            await interaction.editReply({ embeds: [embed] });
+        }
+    } catch (err) {
+        await interaction.editReply(`❌ Error checking item ownership: ${err.message}`);
+    }
+}
+
+async function handleAutoBuyCommand(interaction) {
+    await interaction.deferReply({ ephemeral: true });
+    try {
+        const bought = await autoBuyFreeItems(null, sendAutoBuyNotification);
+        const embed = new EmbedBuilder()
+            .setTitle('Auto-Buy Free Items Scan Complete 🎁')
+            .setColor(0x3498DB)
+            .setDescription(bought.length > 0 
+                ? `Successfully auto-bought **${bought.length}** free item(s)!` 
+                : 'Scanned all items in catalog baseline. No new unowned free items to buy.')
+            .setTimestamp();
+        await interaction.editReply({ embeds: [embed] });
+    } catch (err) {
+        await interaction.editReply(`❌ Error running auto-buy scan: ${err.message}`);
     }
 }
 
@@ -1366,27 +1070,6 @@ async function sendChanges(changes) {
                 targetChannel = priceChangesChannel || catalogChannel;
                 hadCatalogChanges = true;
                 break;
-            case 'title_data_new': {
-                const { embed: tdEmbed, files: tdFiles } = buildTitleDataEmbed('New title data key', change.key, null, change.newValue);
-                targetChannel = titleDataChannel || catalogChannel;
-                await sendToSpecificChannel(targetChannel, tdEmbed, tdFiles);
-                await sleep(1200);
-                continue;
-            }
-            case 'title_data_removed': {
-                const { embed: tdEmbed, files: tdFiles } = buildTitleDataEmbed('Title data key removed', change.key, change.oldValue, null);
-                targetChannel = titleDataChannel || catalogChannel;
-                await sendToSpecificChannel(targetChannel, tdEmbed, tdFiles);
-                await sleep(1200);
-                continue;
-            }
-            case 'title_data_changed': {
-                const { embed: tdEmbed, files: tdFiles } = buildTitleDataEmbed('Title data value changed', change.key, change.oldValue, change.newValue);
-                targetChannel = titleDataChannel || catalogChannel;
-                await sendToSpecificChannel(targetChannel, tdEmbed, tdFiles);
-                await sleep(1200);
-                continue;
-            }
             default:
                 continue;
         }
@@ -1519,70 +1202,24 @@ function buildBundleChangeEmbed(change) {
     return embed;
 }
 
-function buildTitleDataEmbed(title, key, oldValue, newValue) {
-    let color = 0xF1C40F;
-    if (oldValue === null || oldValue === undefined) color = 0x2ECC71;
-    if (newValue === null || newValue === undefined) color = 0xE74C3C;
+async function sendAutoBuyNotification(item, result) {
+    const displayName = getItemDisplayName(item.ItemId, item.DisplayName) || item.ItemId;
+    const targetChan = newItemsChannel || catalogChannel;
+    if (!targetChan) return;
 
     const embed = new EmbedBuilder()
-        .setTitle(title)
-        .setDescription(`Key: \`${key}\``)
-        .setColor(color);
+        .setTitle('🎁 Free Item Auto-Bought!')
+        .setDescription(`Successfully purchased **${displayName}** for **0 Shiny Rocks**!`)
+        .setColor(0x2ECC71)
+        .addFields(
+            { name: 'Item ID', value: `\`${item.ItemId}\``, inline: true },
+            { name: 'Display Name', value: displayName, inline: true },
+            { name: 'Price Paid', value: '0 Shiny Rocks (Free)', inline: true },
+            { name: 'Account', value: `Bot Session (${config.steam.username || 'Steam User'})`, inline: false },
+        )
+        .setTimestamp();
 
-    const files = [];
-
-    // If either value is large (> 950 chars), attach full file
-    if ((oldValue && oldValue.length > 950) || (newValue && newValue.length > 950)) {
-        let fileContent = `=== TITLE DATA CHANGE ===\nKey: ${key}\nType: ${title}\n\n`;
-        if (oldValue) fileContent += `=== OLD VALUE ===\n${oldValue}\n\n`;
-        if (newValue) fileContent += `=== NEW VALUE ===\n${newValue}\n\n`;
-
-        files.push({
-            attachment: Buffer.from(fileContent, 'utf8'),
-            name: `${key}_change.txt`,
-        });
-    }
-
-    if (oldValue !== null && oldValue !== undefined && newValue !== null && newValue !== undefined) {
-        embed.addFields(
-            { name: 'Old value', value: prettyFormat(oldValue), inline: false },
-            { name: 'New value', value: prettyFormat(newValue), inline: false },
-        );
-    } else if (newValue !== null && newValue !== undefined) {
-        embed.addFields({ name: 'New value', value: prettyFormat(newValue), inline: false });
-    } else if (oldValue !== null && oldValue !== undefined) {
-        embed.addFields({ name: 'Old value', value: prettyFormat(oldValue), inline: false });
-    }
-
-    if (files.length > 0) {
-        embed.setFooter({ text: 'Full content attached as a file due to length.' });
-    }
-
-    return { embed, files };
-}
-
-function prettyFormat(input) {
-    if (!input) return '*(empty)*';
-
-    let cleaned = input.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n').trim();
-
-    if ((cleaned.startsWith('{') && cleaned.endsWith('}')) || (cleaned.startsWith('[') && cleaned.endsWith(']'))) {
-        try {
-            const parsed = JSON.parse(cleaned);
-            const formatted = JSON.stringify(parsed, null, 2);
-            return wrapCodeBlock(formatted, 'json');
-        } catch { }
-    }
-
-    return wrapCodeBlock(cleaned, 'txt');
-}
-
-function wrapCodeBlock(text, lang) {
-    const maxLen = 950;
-    if (text.length > maxLen) {
-        text = text.substring(0, maxLen) + '\n... (truncated)';
-    }
-    return '```' + lang + '\n' + text + '\n```';
+    await sendToSpecificChannel(targetChan, embed);
 }
 
 function sleep(ms) {
@@ -1595,54 +1232,4 @@ function updateCheckStats(itemCount) {
 }
 
 function getClient() { return client; }
-module.exports = { initBot, sendChanges, sendDevChanges, sendCCUChange, updateCheckStats, updateListMessage, updateStatusMessage, sleep, getClient };
-async function handleUpdateMothershipToken(interaction) {
-    await interaction.deferReply();
-    const token = interaction.options.getString('token');
-    try {
-        const { validateMothershipToken, setMothershipToken, fetchMothershipTitleData } = require('./mothership');
-        const { diffTitleData } = require('./tracker');
-
-        const val = await validateMothershipToken(token);
-        if (!val.success) {
-            return interaction.editReply({
-                embeds: [
-                    new EmbedBuilder()
-                        .setTitle('❌ Mothership Token Invalid')
-                        .setDescription(`The token was rejected by Mothership:
-\`\`\`${val.error}\`\`\``)
-                        .setColor(0xE74C3C)
-                ]
-            });
-        }
-
-        setMothershipToken(token);
-        const titleData = await fetchMothershipTitleData();
-        const changes = diffTitleData(titleData);
-        if (changes.length > 0) {
-            await sendChanges(changes);
-        }
-
-        return interaction.editReply({
-            embeds: [
-                new EmbedBuilder()
-                    .setTitle('✅ Mothership Token Updated!')
-                    .setDescription(`Successfully authenticated with Mothership!
-
-• **Keys Loaded**: ${val.count} keys
-• **Changes Detected**: ${changes.length}
-• **Status**: Active & saved to storage`)
-                    .setColor(0x2ECC71)
-            ]
-        });
-    } catch (e) {
-        return interaction.editReply({
-            embeds: [
-                new EmbedBuilder()
-                    .setTitle('❌ Error Updating Token')
-                    .setDescription(`\`\`\`${e.message}\`\`\``)
-                    .setColor(0xE74C3C)
-            ]
-        });
-    }
-}
+module.exports = { initBot, sendChanges, sendAutoBuyNotification, sendCCUChange, updateCheckStats, updateListMessage, updateStatusMessage, sleep, getClient };

@@ -835,7 +835,9 @@
     "ItemId": "LHAAT.",
     "CatalogVersion": "DLC",
     "DisplayName": "PAPERBAG HAT",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 2000
+    },
     "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
@@ -849,7 +851,9 @@
     "ItemId": "LHAAU.",
     "CatalogVersion": "DLC",
     "DisplayName": "PUMPKIN HAT",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 2000
+    },
     "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
@@ -931,7 +935,9 @@
     "ItemId": "LFAAP.",
     "CatalogVersion": "DLC",
     "DisplayName": "WITCH NOSE",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 1000
+    },
     "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
@@ -945,7 +951,9 @@
     "ItemId": "LFAAQ.",
     "CatalogVersion": "DLC",
     "DisplayName": "MUMMY WRAP",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 1500
+    },
     "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
@@ -1063,7 +1071,9 @@
     "ItemId": "LSAAA.",
     "CatalogVersion": "DLC",
     "DisplayName": "CLOWN SET",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 4500
+    },
     "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
@@ -1085,7 +1095,9 @@
     "ItemId": "LSAAB.",
     "CatalogVersion": "DLC",
     "DisplayName": "VAMPIRE SET",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 4500
+    },
     "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
@@ -1131,7 +1143,9 @@
     "ItemId": "LSAAD.",
     "CatalogVersion": "DLC",
     "DisplayName": "STAR PRINCESS SET",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 4500
+    },
     "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
@@ -2975,7 +2989,9 @@
     "ItemId": "LFABS.",
     "CatalogVersion": "DLC",
     "DisplayName": "BULGING GOOGLY EYES",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 2200
+    },
     "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
@@ -3015,7 +3031,9 @@
     "ItemId": "LHACJ.",
     "CatalogVersion": "DLC",
     "DisplayName": "PUMPKIN HEAD HAPPY",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 2000
+    },
     "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
@@ -3029,7 +3047,9 @@
     "ItemId": "LHACK.",
     "CatalogVersion": "DLC",
     "DisplayName": "PUMPKIN HEAD SCARY",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 2000
+    },
     "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
@@ -3095,7 +3115,9 @@
     "ItemId": "LFABV.",
     "CatalogVersion": "DLC",
     "DisplayName": "SLINKY EYES",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 2200
+    },
     "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
@@ -3177,7 +3199,9 @@
     "ItemId": "LMAAW.",
     "CatalogVersion": "DLC",
     "DisplayName": "UNICORN STAFF",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 5000
+    },
     "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
@@ -3191,7 +3215,9 @@
     "ItemId": "LMAAX.",
     "CatalogVersion": "DLC",
     "DisplayName": "GHOST BALLOON",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 3000
+    },
     "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
@@ -3205,7 +3231,9 @@
     "ItemId": "LMAAY.",
     "CatalogVersion": "DLC",
     "DisplayName": "GIANT CANDY BAR",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 3000
+    },
     "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
@@ -3219,7 +3247,9 @@
     "ItemId": "LMAAZ.",
     "CatalogVersion": "DLC",
     "DisplayName": "CANDY BAR FUN SIZE",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 2000
+    },
     "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
@@ -3233,7 +3263,9 @@
     "ItemId": "LMABA.",
     "CatalogVersion": "DLC",
     "DisplayName": "SPIDER WEB UMBRELLA",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 5000
+    },
     "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
@@ -3247,7 +3279,9 @@
     "ItemId": "LMABB.",
     "CatalogVersion": "DLC",
     "DisplayName": "DEADSHOT",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 5000
+    },
     "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
@@ -3277,7 +3311,9 @@
     "ItemId": "LSAAI.",
     "CatalogVersion": "DLC",
     "DisplayName": "SHERIFF SET",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 4000
+    },
     "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
@@ -3299,7 +3335,9 @@
     "ItemId": "LSAAJ.",
     "CatalogVersion": "DLC",
     "DisplayName": "ROBOT SET",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 5000
+    },
     "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
@@ -3320,7 +3358,9 @@
     "ItemId": "LSAAK.",
     "CatalogVersion": "DLC",
     "DisplayName": "CLOWN 22 SET",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 4000
+    },
     "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
@@ -3342,7 +3382,9 @@
     "ItemId": "LSAAL.",
     "CatalogVersion": "DLC",
     "DisplayName": "SUPER HERO SET",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 4000
+    },
     "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
@@ -3363,7 +3405,9 @@
     "ItemId": "LSAAM.",
     "CatalogVersion": "DLC",
     "DisplayName": "UNICORN PRINCESS SET",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 4000
+    },
     "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
@@ -8413,7 +8457,9 @@
     "ItemId": "LHAEX.",
     "CatalogVersion": "DLC",
     "DisplayName": "LHAEX.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 2500
+    },
     "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
@@ -8457,7 +8503,9 @@
     "ItemId": "LFADG.",
     "CatalogVersion": "DLC",
     "DisplayName": "LFADG.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 2000
+    },
     "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
@@ -8471,7 +8519,9 @@
     "ItemId": "LFADH.",
     "CatalogVersion": "DLC",
     "DisplayName": "LFADH.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 2000
+    },
     "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
@@ -8485,7 +8535,9 @@
     "ItemId": "LFADI.",
     "CatalogVersion": "DLC",
     "DisplayName": "LFADI.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 2000
+    },
     "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
@@ -8512,7 +8564,9 @@
     "ItemId": "LBAEG.",
     "CatalogVersion": "DLC",
     "DisplayName": "LBAEG.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 2800
+    },
     "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
@@ -8526,7 +8580,9 @@
     "ItemId": "LBAEH.",
     "CatalogVersion": "DLC",
     "DisplayName": "LBAEH.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 2500
+    },
     "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
@@ -8553,7 +8609,9 @@
     "ItemId": "LMAGS.",
     "CatalogVersion": "DLC",
     "DisplayName": "LMAGS.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 4000
+    },
     "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
@@ -8596,7 +8654,9 @@
     "ItemId": "LMAGV.",
     "CatalogVersion": "DLC",
     "DisplayName": "LMAGV.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 3200
+    },
     "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
@@ -8610,7 +8670,9 @@
     "ItemId": "LMAGW.",
     "CatalogVersion": "DLC",
     "DisplayName": "LMAGW.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 3500
+    },
     "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
@@ -8624,7 +8686,9 @@
     "ItemId": "LMAGX.",
     "CatalogVersion": "DLC",
     "DisplayName": "LMAGX.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 3500
+    },
     "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
@@ -8638,7 +8702,9 @@
     "ItemId": "LMAGY.",
     "CatalogVersion": "DLC",
     "DisplayName": "LMAGY.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 4500
+    },
     "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
@@ -8652,7 +8718,9 @@
     "ItemId": "LMAGZ.",
     "CatalogVersion": "DLC",
     "DisplayName": "LMAGZ.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 5000
+    },
     "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
@@ -8693,7 +8761,9 @@
     "ItemId": "LBAEI.",
     "CatalogVersion": "DLC",
     "DisplayName": "LBAEI.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 4500
+    },
     "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
@@ -13988,7 +14058,9 @@
     "ItemId": "LFAEM.",
     "CatalogVersion": "DLC",
     "DisplayName": "LFAEM.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 2000
+    },
     "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
@@ -14002,7 +14074,9 @@
     "ItemId": "LFAEN.",
     "CatalogVersion": "DLC",
     "DisplayName": "LFAEN.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 2000
+    },
     "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
@@ -14596,7 +14670,9 @@
     "ItemId": "LEAAA.",
     "CatalogVersion": "DLC",
     "DisplayName": "LEAAA.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 3500
+    },
     "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
@@ -14610,7 +14686,9 @@
     "ItemId": "LEAAB.",
     "CatalogVersion": "DLC",
     "DisplayName": "LEAAB.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 3500
+    },
     "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
@@ -21625,7 +21703,7 @@
     "CatalogVersion": "DLC",
     "DisplayName": "LBANN.",
     "VirtualCurrencyPrices": {
-      "SR": 0
+      "SR": 2000
     },
     "RealCurrencyPrices": {},
     "Tags": [],
@@ -22081,7 +22159,7 @@
     "CatalogVersion": "DLC",
     "DisplayName": "LBANT.",
     "VirtualCurrencyPrices": {
-      "SR": 0
+      "SR": 2000
     },
     "RealCurrencyPrices": {},
     "Tags": [],
@@ -22136,7 +22214,7 @@
     "CatalogVersion": "DLC",
     "DisplayName": "LBANX.",
     "VirtualCurrencyPrices": {
-      "SR": 0
+      "SR": 2000
     },
     "RealCurrencyPrices": {},
     "Tags": [],
@@ -22670,7 +22748,10 @@
     "ItemId": "LBAOJ.",
     "CatalogVersion": "DLC",
     "DisplayName": "LBAOJ.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 0
+    },
+    "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
     "CanBecomeCharacter": false,
@@ -32219,7 +32300,10 @@
     "ItemId": "LBAUX.",
     "CatalogVersion": "DLC",
     "DisplayName": "LBAUX.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 2100
+    },
+    "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
     "CanBecomeCharacter": false,
@@ -32232,7 +32316,10 @@
     "ItemId": "LHAOK.",
     "CatalogVersion": "DLC",
     "DisplayName": "LHAOK.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 2000
+    },
+    "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
     "CanBecomeCharacter": false,
@@ -32245,7 +32332,10 @@
     "ItemId": "LBAUY.",
     "CatalogVersion": "DLC",
     "DisplayName": "LBAUY.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 2100
+    },
+    "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
     "CanBecomeCharacter": false,
@@ -32306,7 +32396,10 @@
     "ItemId": "LFAKE.",
     "CatalogVersion": "DLC",
     "DisplayName": "LFAKE.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 1600
+    },
+    "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
     "CanBecomeCharacter": false,
@@ -32319,7 +32412,10 @@
     "ItemId": "LFAKF.",
     "CatalogVersion": "DLC",
     "DisplayName": "LFAKF.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 1800
+    },
+    "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
     "CanBecomeCharacter": false,
@@ -32332,7 +32428,10 @@
     "ItemId": "LHAOM.",
     "CatalogVersion": "DLC",
     "DisplayName": "LHAOM.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 2000
+    },
+    "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
     "CanBecomeCharacter": false,
@@ -32650,7 +32749,10 @@
     "ItemId": "LPABJ.",
     "CatalogVersion": "DLC",
     "DisplayName": "LPABJ.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 400
+    },
+    "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
     "CanBecomeCharacter": false,
@@ -32663,7 +32765,10 @@
     "ItemId": "LPABK.",
     "CatalogVersion": "DLC",
     "DisplayName": "LPABK.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 1500
+    },
+    "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
     "CanBecomeCharacter": false,
@@ -32676,7 +32781,10 @@
     "ItemId": "LPABL.",
     "CatalogVersion": "DLC",
     "DisplayName": "LPABL.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 200
+    },
+    "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
     "CanBecomeCharacter": false,
@@ -32689,7 +32797,10 @@
     "ItemId": "LPABM.",
     "CatalogVersion": "DLC",
     "DisplayName": "LPABM.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 200
+    },
+    "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
     "CanBecomeCharacter": false,
@@ -32702,7 +32813,10 @@
     "ItemId": "LPABN.",
     "CatalogVersion": "DLC",
     "DisplayName": "LPABN.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 400
+    },
+    "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
     "CanBecomeCharacter": false,
@@ -32715,7 +32829,10 @@
     "ItemId": "LPABO.",
     "CatalogVersion": "DLC",
     "DisplayName": "LPABO.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 400
+    },
+    "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
     "CanBecomeCharacter": false,
@@ -32842,7 +32959,10 @@
     "ItemId": "LHAOR.",
     "CatalogVersion": "DLC",
     "DisplayName": "LHAOR.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 2200
+    },
+    "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
     "CanBecomeCharacter": false,
@@ -32855,7 +32975,10 @@
     "ItemId": "LHAOS.",
     "CatalogVersion": "DLC",
     "DisplayName": "LHAOS.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 2300
+    },
+    "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
     "CanBecomeCharacter": false,
@@ -32868,7 +32991,10 @@
     "ItemId": "LHAOT.",
     "CatalogVersion": "DLC",
     "DisplayName": "LHAOT.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 2000
+    },
+    "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
     "CanBecomeCharacter": false,
@@ -32907,7 +33033,10 @@
     "ItemId": "LHAOW.",
     "CatalogVersion": "DLC",
     "DisplayName": "LHAOW.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 2500
+    },
+    "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
     "CanBecomeCharacter": false,
@@ -32933,7 +33062,10 @@
     "ItemId": "LFAKI.",
     "CatalogVersion": "DLC",
     "DisplayName": "LFAKI.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 1500
+    },
+    "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
     "CanBecomeCharacter": false,
@@ -32959,7 +33091,10 @@
     "ItemId": "LBAVH.",
     "CatalogVersion": "DLC",
     "DisplayName": "LBAVH.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 1700
+    },
+    "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
     "CanBecomeCharacter": false,
@@ -32972,7 +33107,10 @@
     "ItemId": "LBAVI.",
     "CatalogVersion": "DLC",
     "DisplayName": "LBAVI.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 2000
+    },
+    "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
     "CanBecomeCharacter": false,
@@ -32985,7 +33123,10 @@
     "ItemId": "LBAVJ.",
     "CatalogVersion": "DLC",
     "DisplayName": "LBAVJ.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 2200
+    },
+    "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
     "CanBecomeCharacter": false,
@@ -32998,7 +33139,10 @@
     "ItemId": "LBAVK.",
     "CatalogVersion": "DLC",
     "DisplayName": "LBAVK.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 2300
+    },
+    "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
     "CanBecomeCharacter": false,
@@ -33011,7 +33155,10 @@
     "ItemId": "LBAVL.",
     "CatalogVersion": "DLC",
     "DisplayName": "LBAVL.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 2400
+    },
+    "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
     "CanBecomeCharacter": false,
@@ -33024,7 +33171,10 @@
     "ItemId": "LBAVM.",
     "CatalogVersion": "DLC",
     "DisplayName": "LBAVM.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 3100
+    },
+    "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
     "CanBecomeCharacter": false,
@@ -33037,7 +33187,10 @@
     "ItemId": "LMBBU.",
     "CatalogVersion": "DLC",
     "DisplayName": "LMBBU.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 3200
+    },
+    "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
     "CanBecomeCharacter": false,
@@ -33050,7 +33203,10 @@
     "ItemId": "LMBBV.",
     "CatalogVersion": "DLC",
     "DisplayName": "LMBBV.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 3100
+    },
+    "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
     "CanBecomeCharacter": false,
@@ -33063,7 +33219,10 @@
     "ItemId": "LMBBW.",
     "CatalogVersion": "DLC",
     "DisplayName": "LMBBW.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 2900
+    },
+    "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
     "CanBecomeCharacter": false,
@@ -33089,7 +33248,10 @@
     "ItemId": "LMBBY.",
     "CatalogVersion": "DLC",
     "DisplayName": "LMBBY.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 3000
+    },
+    "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
     "CanBecomeCharacter": false,
@@ -33115,7 +33277,10 @@
     "ItemId": "LMBCA.",
     "CatalogVersion": "DLC",
     "DisplayName": "LMBCA.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 2300
+    },
+    "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
     "CanBecomeCharacter": false,
@@ -33141,7 +33306,10 @@
     "ItemId": "LMBCC.",
     "CatalogVersion": "DLC",
     "DisplayName": "LMBCC.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 4200
+    },
+    "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
     "CanBecomeCharacter": false,
@@ -33167,7 +33335,10 @@
     "ItemId": "LMBCE.",
     "CatalogVersion": "DLC",
     "DisplayName": "LMBCE.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 4000
+    },
+    "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
     "CanBecomeCharacter": false,
@@ -33180,7 +33351,10 @@
     "ItemId": "LMBCF.",
     "CatalogVersion": "DLC",
     "DisplayName": "LMBCF.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 4000
+    },
+    "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
     "CanBecomeCharacter": false,
@@ -33206,7 +33380,10 @@
     "ItemId": "LEAAI.",
     "CatalogVersion": "DLC",
     "DisplayName": "LEAAI.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 2500
+    },
+    "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
     "CanBecomeCharacter": false,
@@ -33219,7 +33396,10 @@
     "ItemId": "LBAVN.",
     "CatalogVersion": "DLC",
     "DisplayName": "LBAVN.",
-    "VirtualCurrencyPrices": {},
+    "VirtualCurrencyPrices": {
+      "SR": 0
+    },
+    "RealCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},
     "CanBecomeCharacter": false,
@@ -33245,6 +33425,1952 @@
     "ItemId": "LMBCI.",
     "CatalogVersion": "DLC",
     "DisplayName": "LMBCI.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBCJ.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBCJ.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBCK.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBCK.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBCL.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBCL.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBCM.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBCM.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LPABS.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LPABS.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LPABT.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LPABT.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LPABU.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LPABU.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LPABV.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LPABV.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LPABW.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LPABW.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LPABX.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LPABX.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LPABY.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LPABY.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBCN.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBCN.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBCO.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBCO.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBCP.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBCP.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBCQ.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBCQ.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBCR.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBCR.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBCS.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBCS.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBCT.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBCT.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBCU.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBCU.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBCV.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBCV.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBCW.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBCW.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBCX.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBCX.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBCY.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBCY.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBCZ.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBCZ.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBDA.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBDA.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LHAOY.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LHAOY.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LHAOZ.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LHAOZ.",
+    "VirtualCurrencyPrices": {
+      "SR": 1600
+    },
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LHAPA.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LHAPA.",
+    "VirtualCurrencyPrices": {
+      "SR": 2300
+    },
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LFAKK.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LFAKK.",
+    "VirtualCurrencyPrices": {
+      "SR": 2700
+    },
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LBAVO.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LBAVO.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LBAVP.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LBAVP.",
+    "VirtualCurrencyPrices": {
+      "SR": 2400
+    },
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LBAVQ.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LBAVQ.",
+    "VirtualCurrencyPrices": {
+      "SR": 1800
+    },
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LBAVR.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LBAVR.",
+    "VirtualCurrencyPrices": {
+      "SR": 0
+    },
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LBAVS.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LBAVS.",
+    "VirtualCurrencyPrices": {
+      "SR": 2500
+    },
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBDB.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBDB.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBDC.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBDC.",
+    "VirtualCurrencyPrices": {
+      "SR": 5000
+    },
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBDD.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBDD.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBDE.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBDE.",
+    "VirtualCurrencyPrices": {
+      "SR": 3000
+    },
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBDF.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBDF.",
+    "VirtualCurrencyPrices": {
+      "SR": 3200
+    },
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBDG.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBDG.",
+    "VirtualCurrencyPrices": {
+      "SR": 4000
+    },
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LSAER.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LSAER.",
+    "VirtualCurrencyPrices": {},
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "Bundle": {
+      "BundledItems": [
+        "LPABV.",
+        "LPABS.",
+        "LPABX."
+      ],
+      "BundledResultTables": []
+    },
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LSAES.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LSAES.",
+    "VirtualCurrencyPrices": {
+      "RM": 2999
+    },
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "Bundle": {
+      "BundledItems": [
+        "LBAVO.",
+        "LHAOY.",
+        "LMBDB."
+      ],
+      "BundledResultTables": [],
+      "BundledVirtualCurrencies": {
+        "SR": 10000
+      }
+    },
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "GTFC.LSAES.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "GTFC.LSAES.",
+    "VirtualCurrencyPrices": {
+      "RM": 2399
+    },
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "GTCARDBOARDHEROP",
+    "CatalogVersion": "DLC",
+    "DisplayName": "GTCARDBOARDHEROP",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "Bundle": {
+      "BundledItems": [
+        "LBALW.",
+        "LHAJM."
+      ],
+      "BundledResultTables": [],
+      "BundledVirtualCurrencies": {
+        "SR": 1000
+      }
+    },
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "GTBANANABEARDPAC",
+    "CatalogVersion": "DLC",
+    "DisplayName": "GTBANANABEARDPAC",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "Bundle": {
+      "BundledItems": [
+        "LBAUP.",
+        "LFAKA.",
+        "LHAOH.",
+        "LMBBE."
+      ],
+      "BundledResultTables": [],
+      "BundledVirtualCurrencies": {
+        "SR": 10000
+      }
+    },
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "GTSPIDERMONKEPAC",
+    "CatalogVersion": "DLC",
+    "DisplayName": "GTSPIDERMONKEPAC",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "Bundle": {
+      "BundledItems": [
+        "LBAEF.",
+        "LHAEV.",
+        "LMAGR."
+      ],
+      "BundledResultTables": [],
+      "BundledVirtualCurrencies": {
+        "SR": 10000
+      }
+    },
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBDI.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBDI.",
+    "VirtualCurrencyPrices": {
+      "SR": 3200
+    },
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBDJ.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBDJ.",
+    "VirtualCurrencyPrices": {
+      "SR": 3500
+    },
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LBAVX.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LBAVX.",
+    "VirtualCurrencyPrices": {
+      "SR": 0
+    },
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LBAVY.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LBAVY.",
+    "VirtualCurrencyPrices": {
+      "SR": 1900
+    },
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LBAVZ.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LBAVZ.",
+    "VirtualCurrencyPrices": {
+      "SR": 2000
+    },
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LBAWA.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LBAWA.",
+    "VirtualCurrencyPrices": {
+      "SR": 2100
+    },
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LBAWB.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LBAWB.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LHAPB.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LHAPB.",
+    "VirtualCurrencyPrices": {
+      "SR": 2000
+    },
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LBAVT.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LBAVT.",
+    "VirtualCurrencyPrices": {
+      "SR": 2000
+    },
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LFAKL.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LFAKL.",
+    "VirtualCurrencyPrices": {
+      "SR": 1700
+    },
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBDH.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBDH.",
+    "VirtualCurrencyPrices": {
+      "SR": 2400
+    },
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LPABZ.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LPABZ.",
+    "VirtualCurrencyPrices": {
+      "SR": 1500
+    },
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LHAPD.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LHAPD.",
+    "VirtualCurrencyPrices": {
+      "SR": 2100
+    },
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LHAPE.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LHAPE.",
+    "VirtualCurrencyPrices": {
+      "SR": 2200
+    },
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LHAPF.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LHAPF.",
+    "VirtualCurrencyPrices": {
+      "SR": 2100
+    },
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LFAKM.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LFAKM.",
+    "VirtualCurrencyPrices": {
+      "SR": 1800
+    },
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBDK.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBDK.",
+    "VirtualCurrencyPrices": {
+      "SR": 4200
+    },
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBDL.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBDL.",
+    "VirtualCurrencyPrices": {
+      "SR": 4000
+    },
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBDM.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBDM.",
+    "VirtualCurrencyPrices": {
+      "SR": 4500
+    },
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LBAVU.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LBAVU.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LBAVW.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LBAVW.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LHAPC.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LHAPC.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LBAVV.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LBAVV.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LBAWC.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LBAWC.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LFAKN.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LFAKN.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LBAWD.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LBAWD.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBDN.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBDN.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBDO.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBDO.",
+    "VirtualCurrencyPrices": {
+      "SR": 4000
+    },
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LBAWE.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LBAWE.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LFAKO.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LFAKO.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBDP.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBDP.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LBAWF.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LBAWF.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LHAPG.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LHAPG.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LFAKP.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LFAKP.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LBAWG.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LBAWG.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LHAPH.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LHAPH.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBDQ.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBDQ.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LPACA.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LPACA.",
+    "VirtualCurrencyPrices": {
+      "SR": 400
+    },
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LPACB.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LPACB.",
+    "VirtualCurrencyPrices": {
+      "SR": 400
+    },
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LHAPI.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LHAPI.",
+    "VirtualCurrencyPrices": {
+      "SR": 3500
+    },
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LEAAJ.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LEAAJ.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LFAKQ.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LFAKQ.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LFAKR.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LFAKR.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LFAKS.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LFAKS.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LFAKT.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LFAKT.",
+    "VirtualCurrencyPrices": {
+      "SR": 1900
+    },
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBDR.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBDR.",
+    "VirtualCurrencyPrices": {
+      "SR": 4000
+    },
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBDS.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBDS.",
+    "VirtualCurrencyPrices": {
+      "SR": 3200
+    },
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBDT.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBDT.",
+    "VirtualCurrencyPrices": {
+      "SR": 2500
+    },
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LPACC.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LPACC.",
+    "VirtualCurrencyPrices": {
+      "SR": 400
+    },
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LPACD.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LPACD.",
+    "VirtualCurrencyPrices": {
+      "SR": 400
+    },
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "GTFCLSABT.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "GTFCLSABT.",
+    "VirtualCurrencyPrices": {
+      "RM": 2399
+    },
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "CARDBOARDHEROCOS",
+    "CatalogVersion": "DLC",
+    "DisplayName": "CARDBOARDHEROCOS",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "Bundle": {
+      "BundledItems": [
+        "LBALW.",
+        "LHAJM."
+      ],
+      "BundledResultTables": [],
+      "BundledVirtualCurrencies": {
+        "SR": 1000
+      }
+    },
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "BANANABEARDCOSTU",
+    "CatalogVersion": "DLC",
+    "DisplayName": "BANANABEARDCOSTU",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "Bundle": {
+      "BundledItems": [
+        "LBAUP.",
+        "LFAKA.",
+        "LHAOH.",
+        "LMBBE."
+      ],
+      "BundledResultTables": [],
+      "BundledVirtualCurrencies": {
+        "SR": 10000
+      }
+    },
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "SPIDERMONKEYCOST",
+    "CatalogVersion": "DLC",
+    "DisplayName": "SPIDERMONKEYCOST",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "Bundle": {
+      "BundledItems": [
+        "LBAEF.",
+        "LHAEV.",
+        "LMAGR."
+      ],
+      "BundledResultTables": [],
+      "BundledVirtualCurrencies": {
+        "SR": 10000
+      }
+    },
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBDU.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBDU.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LBAWH.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LBAWH.",
+    "VirtualCurrencyPrices": {
+      "SR": 1500
+    },
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBDV.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBDV.",
+    "VirtualCurrencyPrices": {
+      "SR": 5000
+    },
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBDW.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBDW.",
+    "VirtualCurrencyPrices": {
+      "SR": 3200
+    },
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBDX.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBDX.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBDY.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBDY.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LSAET.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LSAET.",
+    "VirtualCurrencyPrices": {
+      "RM": 2999
+    },
+    "Tags": [],
+    "Consumable": {},
+    "Bundle": {
+      "BundledItems": [
+        "LBAWC.",
+        "LFAKN.",
+        "LBAWD.",
+        "LMBDN."
+      ],
+      "BundledResultTables": [],
+      "BundledVirtualCurrencies": {
+        "SR": 10000
+      }
+    },
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "GTFCLSAET.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "GTFCLSAET.",
+    "VirtualCurrencyPrices": {
+      "RM": 2399
+    },
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LSAEU.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LSAEU.",
+    "VirtualCurrencyPrices": {
+      "SR": 5000
+    },
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "Bundle": {
+      "BundledItems": [
+        "LBAWE.",
+        "LFAKO.",
+        "LMBDP."
+      ],
+      "BundledResultTables": []
+    },
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LSAEV.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LSAEV.",
+    "VirtualCurrencyPrices": {
+      "SR": 5500
+    },
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "Bundle": {
+      "BundledItems": [
+        "LBAWF.",
+        "LHAPG.",
+        "LFAKP.",
+        "LMBDY."
+      ],
+      "BundledResultTables": []
+    },
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LSAEW.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LSAEW.",
+    "VirtualCurrencyPrices": {
+      "SR": 4500
+    },
+    "RealCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "Bundle": {
+      "BundledItems": [
+        "LBAWG.",
+        "LHAPH.",
+        "LMBDQ."
+      ],
+      "BundledResultTables": []
+    },
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBDZ.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBDZ.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBEA.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBEA.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBEB.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBEB.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBEC.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBEC.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LHAPJ.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LHAPJ.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LHAPK.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LHAPK.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LBAWI.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LBAWI.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LBAWJ.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LBAWJ.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LBAWK.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LBAWK.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LBAWL.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LBAWL.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LMBED.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LMBED.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LBAWM.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LBAWM.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LPACE.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LPACE.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LPACF.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LPACF.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LPACG.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LPACG.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LPACH.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LPACH.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LPACI.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LPACI.",
+    "VirtualCurrencyPrices": {},
+    "Tags": [],
+    "Consumable": {},
+    "CanBecomeCharacter": false,
+    "IsStackable": false,
+    "IsTradable": false,
+    "IsLimitedEdition": false,
+    "InitialLimitedEditionCount": 0
+  },
+  {
+    "ItemId": "LBAWN.",
+    "CatalogVersion": "DLC",
+    "DisplayName": "LBAWN.",
     "VirtualCurrencyPrices": {},
     "Tags": [],
     "Consumable": {},

@@ -172,16 +172,18 @@ async function getTitleData() {
 
 /**
  * Purchase an item in Gorilla Tag using exact Unity client payload and headers.
+ * Defaults to the bot's current session ticket if userSessionTicket is not specified.
  */
-async function purchaseItem(userSessionTicket, itemId, price, currency = 'SR') {
-    if (!userSessionTicket) throw new Error('Session ticket is required');
+async function purchaseItem(userSessionTicket, itemId, price = 0, currency = 'SR') {
+    let ticket = (userSessionTicket || sessionTicket || '').trim();
+    if (!ticket) throw new Error('Session ticket is required');
     if (!itemId) throw new Error('ItemId is required');
 
     const url = `${BASE_URL}/Client/PurchaseItem?sdk=UnitySDK-2.87.200602`;
-    const data = await requestWithRetry(url, {
+    let data = await requestWithRetry(url, {
         method: 'POST',
         headers: {
-            'x-authorization': userSessionTicket.trim(),
+            'x-authorization': ticket,
             'x-playfabsdk': 'UnitySDK-2.87.200602',
             'x-reporterrorassuccess': 'true',
             'x-unity-version': '6000.2.9f1',
@@ -196,6 +198,67 @@ async function purchaseItem(userSessionTicket, itemId, price, currency = 'SR') {
         AuthenticationContext: null,
     });
 
+    // If using bot's session and ticket expired, re-auth and retry once
+    const isBotSession = !userSessionTicket || userSessionTicket === sessionTicket;
+    if (isBotSession && (data.code === 401 || (data.errorMessage && data.errorMessage.toLowerCase().includes('ticket')))) {
+        console.log('[PlayFab] Session expired during purchaseItem. Re-authenticating...');
+        await ensureAuthenticated(true);
+        ticket = sessionTicket;
+        data = await requestWithRetry(url, {
+            method: 'POST',
+            headers: {
+                'x-authorization': ticket,
+                'x-playfabsdk': 'UnitySDK-2.87.200602',
+                'x-reporterrorassuccess': 'true',
+                'x-unity-version': '6000.2.9f1',
+            },
+        }, {
+            CatalogVersion: 'DLC',
+            CharacterId: null,
+            ItemId: itemId.trim(),
+            Price: parseInt(price) || 0,
+            StoreId: null,
+            VirtualCurrency: (currency || 'SR').trim(),
+            AuthenticationContext: null,
+        });
+    }
+
+    return data;
+}
+
+/**
+ * Fetch user inventory from PlayFab using exact Unity client payload.
+ */
+async function getUserInventory(userSessionTicket) {
+    let ticket = (userSessionTicket || sessionTicket || '').trim();
+    if (!ticket) throw new Error('Session ticket is required');
+
+    const url = `${BASE_URL}/Client/GetUserInventory?sdk=UnitySDK-2.87.200602`;
+    let data = await requestWithRetry(url, {
+        method: 'POST',
+        headers: {
+            'x-authorization': ticket,
+            'x-playfabsdk': 'UnitySDK-2.87.200602',
+            'x-reporterrorassuccess': 'true',
+            'x-unity-version': '6000.2.9f1',
+        },
+    }, {});
+
+    const isBotSession = !userSessionTicket || userSessionTicket === sessionTicket;
+    if (isBotSession && (data.code === 401 || (data.errorMessage && data.errorMessage.toLowerCase().includes('ticket')))) {
+        await ensureAuthenticated(true);
+        ticket = sessionTicket;
+        data = await requestWithRetry(url, {
+            method: 'POST',
+            headers: {
+                'x-authorization': ticket,
+                'x-playfabsdk': 'UnitySDK-2.87.200602',
+                'x-reporterrorassuccess': 'true',
+                'x-unity-version': '6000.2.9f1',
+            },
+        }, {});
+    }
+
     return data;
 }
 
@@ -208,6 +271,7 @@ module.exports = {
     getCatalogItems,
     getTitleData,
     purchaseItem,
+    getUserInventory,
     getSessionTicket,
     clearSession,
 };

@@ -1,11 +1,20 @@
 require('dotenv').config();
 
 // Determine poll interval in milliseconds (supports POLL_INTERVAL_SECONDS or POLL_INTERVAL_MINUTES)
-let intervalSeconds = 600; // default 10 min
+let intervalSeconds = 60; // default 60s
 if (process.env.POLL_INTERVAL_SECONDS) {
-    intervalSeconds = Math.max(5, parseFloat(process.env.POLL_INTERVAL_SECONDS));
+    const parsed = parseFloat(process.env.POLL_INTERVAL_SECONDS);
+    if (!isNaN(parsed) && Number.isFinite(parsed) && parsed > 0) {
+        intervalSeconds = Math.max(5, parsed);
+    }
 } else if (process.env.POLL_INTERVAL_MINUTES) {
-    intervalSeconds = Math.max(0.1, parseFloat(process.env.POLL_INTERVAL_MINUTES)) * 60;
+    const parsed = parseFloat(process.env.POLL_INTERVAL_MINUTES);
+    if (!isNaN(parsed) && Number.isFinite(parsed) && parsed > 0) {
+        intervalSeconds = Math.max(0.1, parsed) * 60;
+    }
+}
+if (isNaN(intervalSeconds) || !Number.isFinite(intervalSeconds) || intervalSeconds < 5) {
+    intervalSeconds = 60;
 }
 
 module.exports = {
@@ -26,7 +35,8 @@ module.exports = {
     steam: {
         username: process.env.STEAM_USERNAME,
         password: process.env.STEAM_PASSWORD,
-        appId: parseInt(process.env.STEAM_APPID || '1533390'),
+        refreshToken: process.env.STEAM_REFRESH_TOKEN,
+        appId: parseInt(process.env.STEAM_APPID || '1533390', 10),
     },
     playfab: {
         titleId: process.env.PLAYFAB_TITLE_ID || '63FDD',
@@ -35,7 +45,7 @@ module.exports = {
     shopify: {
         domain: process.env.SHOPIFY_DOMAIN || 'another-axiom-x-juniper.myshopify.com',
         storefrontToken: process.env.SHOPIFY_STOREFRONT_TOKEN || '5db8864a0aebe3ff62a60db93e8491e1',
-        pollIntervalSeconds: parseInt(process.env.SHOPIFY_POLL_INTERVAL_SECONDS || '60'),
+        pollIntervalSeconds: parseInt(process.env.SHOPIFY_POLL_INTERVAL_SECONDS || '60', 10),
     },
     pollIntervalSeconds: intervalSeconds,
     pollIntervalMs: Math.round(intervalSeconds * 1000),

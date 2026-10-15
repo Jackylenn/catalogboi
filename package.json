@@ -5,7 +5,8 @@
   "main": "src/index.js",
   "scripts": {
     "start": "node --max-old-space-size=64 --optimize-for-size src/index.js",
-    "dev": "node --watch src/index.js"
+    "dev": "node --watch src/index.js",
+    "auth": "node scripts/login_steam.js"
   },
   "dependencies": {
     "discord.js": "^14.16.0",
